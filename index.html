@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/TimeStamp/assets/index-n4K1P1hA.js"></script>
+    <script type="module" crossorigin src="/TimeStamp/assets/index-BL-FtmVB.js"></script>
     <link rel="stylesheet" crossorigin href="/TimeStamp/assets/index-BxBzjZWw.css">
   </head>
   <body>
@@ -27,18 +27,49 @@
           <div class="db-sync-bar">
             <div class="sync-status" id="sync-status">
               <span class="status-dot offline"></span>
-              <span class="status-text">ยังไม่ได้เชื่อมต่อฐานข้อมูล OneDrive</span>
+              <span class="status-text">Local Storage เท่านั้น</span>
             </div>
             <button class="btn btn-secondary btn-sm" id="btn-import-db">
-              📥 โหลดฐานข้อมูล (JSON)
+              📥 โหลดไฟล์ JSON
             </button>
             <input type="file" id="db-file-input" accept=".json" style="display: none;" />
             <button class="btn btn-secondary btn-sm" id="btn-export-db">
-              💾 เซฟฐานข้อมูลลง OneDrive
+              💾 บันทึกไฟล์ JSON
+            </button>
+            <button class="btn btn-primary btn-sm" id="btn-toggle-gist">
+              ☁️ GitHub Gist Sync
             </button>
           </div>
         </div>
       </header>
+
+      <!-- Gist Configuration Panel -->
+      <section class="card gist-config-panel" id="gist-config-panel" style="display: none; max-width: 1400px; margin: 1rem auto 0; width: 93%;">
+        <div class="card-header">
+          <h2>☁️ ตั้งค่าการซิงค์ข้อมูลผ่าน GitHub Gist (ฟรีข้ามอุปกรณ์)</h2>
+        </div>
+        <div class="card-body">
+          <p style="font-size: 0.85rem; margin-bottom: 1rem; color: var(--text-muted);">
+            วิธีใช้งาน: สร้าง Secret Gist บน GitHub โดยให้มีไฟล์ชื่อ <strong>TimeStampDB.json</strong> จากนั้นนำ Gist ID และ GitHub Personal Access Token (Classic ที่มีสิทธิ์ 'gist') มาใส่ที่นี่ เพื่อซิงค์ข้อมูลไปใช้บนมือถือได้ฟรี!
+          </p>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="gist-github-token">GitHub Token (classic - scopes: gist)</label>
+              <input type="password" id="gist-github-token" placeholder="ghp_xxxxxxxxxxxx" />
+            </div>
+            <div class="form-group">
+              <label for="gist-id">Gist ID</label>
+              <input type="text" id="gist-id" placeholder="รหัส Gist ID 32 หลัก" />
+            </div>
+          </div>
+          <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+            <button class="btn btn-success" id="btn-save-gist-config">💾 บันทึกการตั้งค่า</button>
+            <button class="btn btn-primary" id="btn-pull-gist">📥 ดึงข้อมูลจาก Cloud</button>
+            <button class="btn btn-secondary" id="btn-push-gist">📤 ส่งข้อมูลขึ้น Cloud</button>
+            <button class="btn btn-danger" id="btn-clear-gist-config" style="margin-left: auto;">✕ ล้างสิทธิ์</button>
+          </div>
+        </div>
+      </section>
 
       <main class="app-content">
         <!-- Grid Configuration Areas -->
