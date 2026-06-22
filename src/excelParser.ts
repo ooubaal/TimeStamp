@@ -63,98 +63,26 @@ export function parseExcelFile(file: File): Promise<EmployeeData[]> {
           const row = rows[i];
           if (!row || row.length === 0) continue;
 
-          // Check if this row contains employee metadata anywhere
-          // We look for cells that contain "รหัสพนักงาน" or "ชื่อพนักงาน" or "ตำแหน่งงาน"
-          let foundEmpId = '';
-          let foundEmpName = '';
-          let foundPos = '';
-          let foundGroup = '';
-          let foundDept = '';
+          // Trim cell values to clean spaces
+          const cells = row.map(cell => String(cell || '').trim());
 
-          // Let's inspect each cell in the row
-          for (let c = 0; c < row.length; c++) {
-            const val = String(row[c] || '').trim();
-            
-            // Check if cell is "รหัสพนักงาน" and the next cells have the ID
-            if (val.includes('รหัสพนักงาน') || val.includes('รหัสบัตร')) {
-              // ID is usually in this cell or subsequent non-empty cells
-              for (let k = c + 1; k < Math.min(row.length, c + 5); k++) {
-                const nextVal = String(row[k] || '').trim();
-                if (/^\d+$/.test(nextVal)) {
-                  foundEmpId = nextVal;
-                  break;
-                }
-              }
-            }
+          // 1. Detect Employee metadata row
+          // Based on diagnosis, Employee ID is in Col 0 (e.g. "3630189"), Card ID in Col 3, Name in Col 6 (or next index), 
+          // Position in Col 12, Group in Col 14, Dept in Col 15
+          // We can check if cells[0] is a valid employee ID (numeric e.g. "3630189") and cells[4]/cells[5]/cells[6] contains a name (e.g. "นางสาว ปุณยนุช แต่งผิว")
+          const isNumericId = /^\d{5,10}$/.test(cells[0] || '');
+          const hasName = cells[4] || cells[5] || cells[6] || '';
+          const hasNoSlash = !cells[0].includes('/'); // Ensure it's not a date in column 0
 
-            if (val.includes('ชื่อพนักงาน') || val.includes('ชื่อ-สกุล')) {
-              for (let k = c + 1; k < Math.min(row.length, c + 5); k++) {
-                const nextVal = String(row[k] || '').trim();
-                if (nextVal && !nextVal.includes('ชื่อ') && !nextVal.includes('รหัส') && !nextVal.includes('ตำแหน่ง')) {
-                  foundEmpName = nextVal;
-                  break;
-                }
-              }
-            }
-
-            if (val.includes('ตำแหน่ง')) {
-              for (let k = c + 1; k < Math.min(row.length, c + 5); k++) {
-                const nextVal = String(row[k] || '').trim();
-                if (nextVal && !nextVal.includes('ตำแหน่ง') && !nextVal.includes('กลุ่ม') && !nextVal.includes('หน่วยงาน')) {
-                  foundPos = nextVal;
-                  break;
-                }
-              }
-            }
-
-            if (val.includes('กลุ่มพนักงาน')) {
-              for (let k = c + 1; k < Math.min(row.length, c + 5); k++) {
-                const nextVal = String(row[k] || '').trim();
-                if (nextVal && !nextVal.includes('กลุ่ม')) {
-                  foundGroup = nextVal;
-                  break;
-                }
-              }
-            }
-
-            if (val.includes('หน่วยงาน')) {
-              for (let k = c + 1; k < Math.min(row.length, c + 5); k++) {
-                const nextVal = String(row[k] || '').trim();
-                if (nextVal && !nextVal.includes('หน่วยงาน')) {
-                  foundDept = nextVal;
-                  break;
-                }
-              }
-            }
-          }
-
-          // If we found an ID and a Name anywhere in this row, treat as new employee!
-          if (foundEmpId && foundEmpName) {
-            currentEmployee = {
-              id: foundEmpId,
-              name: foundEmpName,
-              position: foundPos,
-              group: foundGroup,
-              department: foundDept,
-              records: {}
-            };
-            employeesMap[foundEmpId] = currentEmployee as EmployeeData;
-            currentDate = '';
-            continue;
-          }
-
-          // If no keywords found, check if this is the details row directly
-          // For example, some files place ID in Col 0, Name in Col 2.
-          const col0Str = String(row[0] || '').trim();
-          const col2Str = String(row[2] || '').trim();
-          if (/^\d{5,10}$/.test(col0Str) && col2Str && !col2Str.includes('ชื่อพนักงาน') && !col2Str.includes('เวลา') && !col2Str.includes('/')) {
-            const empId = col0Str;
+          if (isNumericId && hasName && hasNoSlash && !cells.includes('รหัสพนักงาน') && !cells.includes('เวลา')) {
+            const empId = cells[0];
+            const empName = String(cells[4] || cells[5] || cells[6] || '').trim();
             currentEmployee = {
               id: empId,
-              name: col2Str,
-              position: String(row[4] || '').trim(),
-              group: String(row[5] || '').trim(),
-              department: String(row[6] || '').trim(),
+              name: empName,
+              position: String(cells[12] || cells[10] || cells[11] || '').trim(),
+              group: String(cells[14] || cells[13] || '').trim(),
+              department: String(cells[15] || cells[16] || '').trim(),
               records: {}
             };
             employeesMap[empId] = currentEmployee as EmployeeData;
@@ -162,19 +90,31 @@ export function parseExcelFile(file: File): Promise<EmployeeData[]> {
             continue;
           }
 
-          // If we have an active employee, check for date and time values
-          // The Excel file can have empty cells or shifted columns due to merging.
-          // Let's inspect the entire row.
+          // 2. Parse Date and Scan Times
+          // Based on diagnosis:
+          // Row with date: Col 1 has date (e.g., '03/10/2565'), Col 5 or Col 6 has time (e.g., '07:26')
+          // Row without date: Col 6 has time (e.g., '16:32')
           if (currentEmployee) {
-            // Find any cell matching "DD/MM/YYYY" format
             let foundDate = '';
             let foundTimes: string[] = [];
 
-            for (let c = 0; c < row.length; c++) {
-              const cellVal = String(row[c] || '').trim();
-              if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(cellVal)) {
-                foundDate = parseThaiDate(cellVal);
-              } else if (/^\d{2}:\d{2}$/.test(cellVal)) {
+            // Look for Date in Col 1 or Col 2 (dd/mm/yyyy format)
+            const dateCandidate1 = cells[1] || '';
+            const dateCandidate2 = cells[2] || '';
+            const dateCandidate0 = cells[0] || '';
+
+            if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateCandidate1)) {
+              foundDate = parseThaiDate(dateCandidate1);
+            } else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateCandidate2)) {
+              foundDate = parseThaiDate(dateCandidate2);
+            } else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateCandidate0)) {
+              foundDate = parseThaiDate(dateCandidate0);
+            }
+
+            // Look for Scan Times (hh:mm format) in all columns of this row
+            for (let c = 0; c < cells.length; c++) {
+              const cellVal = cells[c];
+              if (/^\d{2}:\d{2}$/.test(cellVal)) {
                 foundTimes.push(cellVal);
               }
             }
@@ -188,7 +128,7 @@ export function parseExcelFile(file: File): Promise<EmployeeData[]> {
                 currentEmployee.records![currentDate].push(...foundTimes);
               }
             } else if (currentDate && foundTimes.length > 0) {
-              // Append times to active date
+              // Time only row, append to the active date
               currentEmployee.records![currentDate].push(...foundTimes);
             }
           }
