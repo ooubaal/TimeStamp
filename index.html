@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>โปรแกรมวิเคราะห์ข้อมูลเวลาทำงาน | สภากาชาดไทย</title>
+    <!-- Google Fonts: Outfit & Sarabun for Premium Look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module" crossorigin src="/assets/index-DHgF9Cxv.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BxBzjZWw.css">
+  </head>
+  <body>
+    <div id="app">
+      <!-- Header -->
+      <header class="app-header">
+        <div class="header-container">
+          <div class="logo-area">
+            <span class="red-cross-icon">✚</span>
+            <div class="logo-text">
+              <h1>ระบบบันทึกและสรุปเวลาปฏิบัติงาน</h1>
+              <p>สภากาชาดไทย | Thai Red Cross Society</p>
+            </div>
+          </div>
+          <div class="db-sync-bar">
+            <div class="sync-status" id="sync-status">
+              <span class="status-dot offline"></span>
+              <span class="status-text">ยังไม่ได้เชื่อมต่อฐานข้อมูล OneDrive</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btn-import-db">
+              📥 โหลดฐานข้อมูล (JSON)
+            </button>
+            <input type="file" id="db-file-input" accept=".json" style="display: none;" />
+            <button class="btn btn-secondary btn-sm" id="btn-export-db">
+              💾 เซฟฐานข้อมูลลง OneDrive
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main class="app-content">
+        <!-- Grid Configuration Areas -->
+        <div class="config-grid">
+          <!-- Module 1: File Upload -->
+          <section class="card upload-card">
+            <div class="card-header">
+              <h2>1. นำเข้าไฟล์สแกนบัตร (Excel)</h2>
+            </div>
+            <div class="card-body">
+              <div class="dropzone" id="dropzone">
+                <span class="dropzone-icon">📄</span>
+                <p>ลากไฟล์ Excel มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</p>
+                <input type="file" id="excel-file-input" accept=".xlsx, .xls" style="display: none;" />
+              </div>
+              <div class="file-info" id="file-info" style="display: none;">
+                <span class="file-name">filename.xlsx</span>
+                <button class="btn-clear" id="btn-clear-file">✕</button>
+              </div>
+              <div class="stats-overview" id="stats-overview" style="display: none;">
+                <div class="stat-item">
+                  <span class="stat-val" id="stat-staff-count">0</span>
+                  <span class="stat-lbl">จำนวนเจ้าหน้าที่</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-val" id="stat-days-count">0</span>
+                  <span class="stat-lbl">จำนวนวันที่มีข้อมูล</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Module 4: Rules -->
+          <section class="card rules-card">
+            <div class="card-header">
+              <h2>2. เงื่อนไขและเกณฑ์เวลา</h2>
+            </div>
+            <div class="card-body">
+              <form id="rules-form" class="rules-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="morningWorkStart">เวลาเข้างานปกติ</label>
+                    <input type="time" id="morningWorkStart" value="08:30" />
+                  </div>
+                  <div class="form-group">
+                    <label for="afternoonWorkEnd">เวลาเลิกงานปกติ</label>
+                    <input type="time" id="afternoonWorkEnd" value="16:30" />
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="lateAllowanceMinutes">อนุญาตสายได้ (นาที)</label>
+                    <input type="number" id="lateAllowanceMinutes" min="0" value="0" />
+                  </div>
+                  <div class="form-group">
+                    <label for="earlyCheckoutAllowanceMinutes">อนุญาตออกก่อนเลิกงาน (นาที)</label>
+                    <input type="number" id="earlyCheckoutAllowanceMinutes" min="0" value="0" />
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="halfDayLateMinutes">สายเกินกี่นาทีถือเป็นสายครึ่งวัน</label>
+                  <input type="number" id="halfDayLateMinutes" min="0" value="240" />
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-block">บันทึกเงื่อนไขเกณฑ์เวลา</button>
+              </form>
+            </div>
+          </section>
+
+          <!-- Module 2: Holidays -->
+          <section class="card holidays-card">
+            <div class="card-header">
+              <h2>3. การจัดการวันหยุด</h2>
+            </div>
+            <div class="card-body">
+              <div class="holiday-add-form">
+                <input type="date" id="holiday-date" />
+                <input type="text" id="holiday-name" placeholder="ชื่อวันหยุด (เช่น วันสงกรานต์)" />
+                <button class="btn btn-primary" id="btn-add-holiday">เพิ่มวันหยุด</button>
+              </div>
+              
+              <div class="holiday-list-container">
+                <table class="holiday-table">
+                  <thead>
+                    <tr>
+                      <th>วันที่</th>
+                      <th>ชื่อวันหยุด</th>
+                      <th>ลบ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="holiday-list-body">
+                    <!-- Dynamic -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Filter Period & Controls -->
+        <section class="card filter-card">
+          <div class="filter-controls">
+            <div class="form-group">
+              <label for="filter-start-date">ตั้งแต่วันที่</label>
+              <input type="date" id="filter-start-date" />
+            </div>
+            <div class="form-group">
+              <label for="filter-end-date">ถึงวันที่</label>
+              <input type="date" id="filter-end-date" />
+            </div>
+            <div class="form-group">
+              <label for="search-staff">ค้นหาชื่อเจ้าหน้าที่</label>
+              <input type="text" id="search-staff" placeholder="ระบุชื่อหรือรหัส..." />
+            </div>
+            <div class="form-group action-group">
+              <button class="btn btn-success" id="btn-export-excel">📊 ส่งออกรายงานสรุป (CSV)</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Module 3: Summary Dashboard -->
+        <section class="card summary-card">
+          <div class="card-header">
+            <h2>4. ตารางสรุปเวลาปฏิบัติงานพนักงาน</h2>
+          </div>
+          <div class="card-body overflow-x">
+            <table class="summary-table" id="summary-table">
+              <thead>
+                <tr>
+                  <th>รหัสพนักงาน</th>
+                  <th>ชื่อเจ้าหน้าที่</th>
+                  <th>ฝ่าย/หน่วยงาน</th>
+                  <th>มาทำงาน (วัน)</th>
+                  <th>สาย (ครั้ง)</th>
+                  <th>ลา/ขาดงาน (วัน)</th>
+                  <th>ออกก่อนเวลา (ครั้ง)</th>
+                  <th>รายละเอียด / รายวัน</th>
+                </tr>
+              </thead>
+              <tbody id="summary-table-body">
+                <tr>
+                  <td colspan="8" class="text-center text-muted">กรุณานำเข้าไฟล์สแกนบัตร (Excel) เพื่อคำนวณและแสดงผลตารางสรุป</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Detail Modal for Day-by-Day Analysis -->
+        <div class="modal" id="detail-modal" style="display: none;">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 id="modal-title">รายละเอียดเวลาทำงานรายวัน</h3>
+              <button class="btn-close" id="btn-close-modal">✕</button>
+            </div>
+            <div class="modal-body overflow-y">
+              <table class="detail-table">
+                <thead>
+                  <tr>
+                    <th>วันที่</th>
+                    <th>สแกนเข้า</th>
+                    <th>สแกนออก</th>
+                    <th>สถานะ</th>
+                    <th>สาย (นาที)</th>
+                    <th>ออกก่อน (นาที)</th>
+                  </tr>
+                </thead>
+                <tbody id="detail-table-body">
+                  <!-- Dynamic -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer class="app-footer">
+        <p>&copy; 2026 ระบบประมวลผลข้อมูลสแกนบัตรเข้างาน | ข้อมูลจัดเก็บบน OneDrive</p>
+      </footer>
+    </div>
+  </body>
+</html>
