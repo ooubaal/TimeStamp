@@ -77,11 +77,7 @@ export function importFromJSONFile(file: File): Promise<TimeStampDB> {
     reader.onload = (e) => {
       try {
         const json = JSON.parse(e.target?.result as string);
-        if (json && json.rules && Array.isArray(json.holidays)) {
-          resolve(json as TimeStampDB);
-        } else {
-          reject(new Error("Invalid database format. Must contain rules and holidays arrays."));
-        }
+        resolve(sanitizeDB(json));
       } catch (err) {
         reject(new Error("Failed to parse JSON file."));
       }
@@ -89,4 +85,24 @@ export function importFromJSONFile(file: File): Promise<TimeStampDB> {
     reader.onerror = () => reject(new Error("Failed to read file."));
     reader.readAsText(file);
   });
+}
+
+// Sanitize and guarantee a complete structure even if empty {} was fetched
+export function sanitizeDB(json: any): TimeStampDB {
+  const base = initialDB();
+  if (!json || typeof json !== "object") return base;
+  
+  const rules = {
+    ...base.rules,
+    ...(json.rules || {})
+  };
+  
+  const holidays = Array.isArray(json.holidays) ? json.holidays : base.holidays;
+  
+  return {
+    rules,
+    holidays,
+    version: json.version || base.version,
+    updatedAt: json.updatedAt || base.updatedAt
+  };
 }

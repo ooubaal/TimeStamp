@@ -1,9 +1,10 @@
 import './style.css';
-import { 
+import {
   loadFromLocalStorage, 
   saveToLocalStorage, 
   exportToJSONFile, 
   importFromJSONFile, 
+  sanitizeDB,
 } from './dbSync';
 import type {
   TimeStampDB,
@@ -286,8 +287,10 @@ async function pullFromCloud() {
   if (!gistConfig) return;
   try {
     const data = await fetchFromGist(gistConfig);
-    if (data) {
-      dbState = data;
+    // Sanitize in case it's an empty {}
+    const sanitized = sanitizeDB(data);
+    if (sanitized) {
+      dbState = sanitized;
       saveToLocalStorage(dbState);
       renderRules();
       renderHolidays();
