@@ -63,53 +63,103 @@ export function parseExcelFile(file: File): Promise<EmployeeData[]> {
           const row = rows[i];
           if (!row || row.length === 0) continue;
 
-          const nameIndex = row.findIndex(cell => String(cell || '').includes('ชื่อพนักงาน'));
-          const idIndex = row.findIndex(cell => String(cell || '').includes('รหัสพนักงาน'));
+          // Check if this row contains employee metadata anywhere
+          // We look for cells that contain "รหัสพนักงาน" or "ชื่อพนักงาน" or "ตำแหน่งงาน"
+          let foundEmpId = '';
+          let foundEmpName = '';
+          let foundPos = '';
+          let foundGroup = '';
+          let foundDept = '';
 
-          if (idIndex !== -1 && nameIndex !== -1) {
-            // This is the header row, e.g. "รหัสพนักงาน   รหัสบัตรพนักงาน   ชื่อพนักงาน"
-            // The actual employee details are usually on the row IMMEDIATELY below it!
-            const nextRow = rows[i + 1];
-            if (nextRow) {
-              const empId = String(nextRow[idIndex] || '').trim();
-              const empName = String(nextRow[nameIndex] || nextRow[nameIndex + 1] || '').trim();
-              
-              if (empId && empName && !empId.includes('รหัส')) {
-                currentEmployee = {
-                  id: empId,
-                  name: empName,
-                  position: String(nextRow[idIndex + 3] || nextRow[idIndex + 4] || '').trim(),
-                  group: String(nextRow[idIndex + 5] || '').trim(),
-                  department: String(nextRow[idIndex + 6] || nextRow[idIndex + 7] || '').trim(),
-                  records: {}
-                };
-                employeesMap[empId] = currentEmployee as EmployeeData;
-                currentDate = '';
-                i++; // Skip the next row since we processed it
-                continue;
+          // Let's inspect each cell in the row
+          for (let c = 0; c < row.length; c++) {
+            const val = String(row[c] || '').trim();
+            
+            // Check if cell is "รหัสพนักงาน" and the next cells have the ID
+            if (val.includes('รหัสพนักงาน') || val.includes('รหัสบัตร')) {
+              // ID is usually in this cell or subsequent non-empty cells
+              for (let k = c + 1; k < Math.min(row.length, c + 5); k++) {
+                const nextVal = String(row[k] || '').trim();
+                if (/^\d+$/.test(nextVal)) {
+                  foundEmpId = nextVal;
+                  break;
+                }
+              }
+            }
+
+            if (val.includes('ชื่อพนักงาน') || val.includes('ชื่อ-สกุล')) {
+              for (let k = c + 1; k < Math.min(row.length, c + 5); k++) {
+                const nextVal = String(row[k] || '').trim();
+                if (nextVal && !nextVal.includes('ชื่อ') && !nextVal.includes('รหัส') && !nextVal.includes('ตำแหน่ง')) {
+                  foundEmpName = nextVal;
+                  break;
+                }
+              }
+            }
+
+            if (val.includes('ตำแหน่ง')) {
+              for (let k = c + 1; k < Math.min(row.length, c + 5); k++) {
+                const nextVal = String(row[k] || '').trim();
+                if (nextVal && !nextVal.includes('ตำแหน่ง') && !nextVal.includes('กลุ่ม') && !nextVal.includes('หน่วยงาน')) {
+                  foundPos = nextVal;
+                  break;
+                }
+              }
+            }
+
+            if (val.includes('กลุ่มพนักงาน')) {
+              for (let k = c + 1; k < Math.min(row.length, c + 5); k++) {
+                const nextVal = String(row[k] || '').trim();
+                if (nextVal && !nextVal.includes('กลุ่ม')) {
+                  foundGroup = nextVal;
+                  break;
+                }
+              }
+            }
+
+            if (val.includes('หน่วยงาน')) {
+              for (let k = c + 1; k < Math.min(row.length, c + 5); k++) {
+                const nextVal = String(row[k] || '').trim();
+                if (nextVal && !nextVal.includes('หน่วยงาน')) {
+                  foundDept = nextVal;
+                  break;
+                }
               }
             }
           }
 
-          // Fallback parser if employee ID is in column 0 and name is in column 2 on the row directly
+          // If we found an ID and a Name anywhere in this row, treat as new employee!
+          if (foundEmpId && foundEmpName) {
+            currentEmployee = {
+              id: foundEmpId,
+              name: foundEmpName,
+              position: foundPos,
+              group: foundGroup,
+              department: foundDept,
+              records: {}
+            };
+            employeesMap[foundEmpId] = currentEmployee as EmployeeData;
+            currentDate = '';
+            continue;
+          }
+
+          // If no keywords found, check if this is the details row directly
+          // For example, some files place ID in Col 0, Name in Col 2.
           const col0Str = String(row[0] || '').trim();
           const col2Str = String(row[2] || '').trim();
-          if (/^\d{5,10}$/.test(col0Str) && col2Str && !col2Str.includes('ชื่อพนักงาน') && !col2Str.includes('เวลา')) {
+          if (/^\d{5,10}$/.test(col0Str) && col2Str && !col2Str.includes('ชื่อพนักงาน') && !col2Str.includes('เวลา') && !col2Str.includes('/')) {
             const empId = col0Str;
-            // Ensure this is not a date (just in case)
-            if (!empId.includes('/')) {
-              currentEmployee = {
-                id: empId,
-                name: col2Str,
-                position: String(row[4] || '').trim(),
-                group: String(row[5] || '').trim(),
-                department: String(row[6] || '').trim(),
-                records: {}
-              };
-              employeesMap[empId] = currentEmployee as EmployeeData;
-              currentDate = '';
-              continue;
-            }
+            currentEmployee = {
+              id: empId,
+              name: col2Str,
+              position: String(row[4] || '').trim(),
+              group: String(row[5] || '').trim(),
+              department: String(row[6] || '').trim(),
+              records: {}
+            };
+            employeesMap[empId] = currentEmployee as EmployeeData;
+            currentDate = '';
+            continue;
           }
 
           // If we have an active employee, check for date and time values
