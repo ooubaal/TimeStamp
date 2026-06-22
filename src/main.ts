@@ -16,10 +16,21 @@ import {
 import type {
   EmployeeData 
 } from './excelParser';
+import {
+  loadGistConfig,
+  saveGistConfig,
+  clearGistConfig,
+  fetchFromGist,
+  updateGist,
+} from './freeCloudSync';
+import type {
+  GistSyncConfig
+} from './freeCloudSync';
 
 // State Management
 let dbState: TimeStampDB = loadFromLocalStorage();
 let parsedEmployees: EmployeeData[] = [];
+let gistConfig: GistSyncConfig | null = loadGistConfig();
 
 // DOM Elements
 const syncDot = document.querySelector('.status-dot') as HTMLElement;
@@ -27,6 +38,15 @@ const syncText = document.querySelector('.status-text') as HTMLElement;
 const btnImportDB = document.getElementById('btn-import-db') as HTMLButtonElement;
 const btnExportDB = document.getElementById('btn-export-db') as HTMLButtonElement;
 const dbFileInput = document.getElementById('db-file-input') as HTMLInputElement;
+
+const btnToggleGist = document.getElementById('btn-toggle-gist') as HTMLButtonElement;
+const gistConfigPanel = document.getElementById('gist-config-panel') as HTMLElement;
+const gistTokenInput = document.getElementById('gist-github-token') as HTMLInputElement;
+const gistIdInput = document.getElementById('gist-id') as HTMLInputElement;
+const btnSaveGistConfig = document.getElementById('btn-save-gist-config') as HTMLButtonElement;
+const btnPullGist = document.getElementById('btn-pull-gist') as HTMLButtonElement;
+const btnPushGist = document.getElementById('btn-push-gist') as HTMLButtonElement;
+const btnClearGistConfig = document.getElementById('btn-clear-gist-config') as HTMLButtonElement;
 
 const dropzone = document.getElementById('dropzone') as HTMLElement;
 const excelFileInput = document.getElementById('excel-file-input') as HTMLInputElement;
@@ -97,6 +117,46 @@ function init() {
   btnImportDB.addEventListener('click', () => dbFileInput.click());
   dbFileInput.addEventListener('change', handleDBImport);
   btnExportDB.addEventListener('click', handleDBExport);
+
+  // GitHub Gist Handlers
+  btnToggleGist.addEventListener('click', () => {
+    const isHidden = gistConfigPanel.style.display === 'none';
+    gistConfigPanel.style.display = isHidden ? 'block' : 'none';
+  });
+
+  if (gistConfig) {
+    gistTokenInput.value = gistConfig.githubToken;
+    gistIdInput.value = gistConfig.gistId;
+    updateSyncStatus(true, 'เชื่อมต่อ GitHub Gist แล้ว');
+    // Auto-pull on startup
+    pullFromCloud();
+  }
+
+  btnSaveGistConfig.addEventListener('click', () => {
+    const token = gistTokenInput.value.trim();
+    const id = gistIdInput.value.trim();
+    if (!token || !id) {
+      alert('กรุณากรอกทั้ง GitHub Token และ Gist ID');
+      return;
+    }
+    gistConfig = { githubToken: token, gistId: id };
+    saveGistConfig(gistConfig);
+    updateSyncStatus(true, 'บันทึกสิทธิ์ Gist แล้ว');
+    alert('บันทึกสิทธิ์ Gist สำเร็จ! กำลังดึงข้อมูลจาก Cloud...');
+    pullFromCloud();
+  });
+
+  btnPullGist.addEventListener('click', pullFromCloud);
+  btnPushGist.addEventListener('click', pushToCloud);
+
+  btnClearGistConfig.addEventListener('click', () => {
+    clearGistConfig();
+    gistConfig = null;
+    gistTokenInput.value = '';
+    gistIdInput.value = '';
+    updateSyncStatus(false, 'Local Storage เท่านั้น');
+    alert('ล้างสิทธิ์เชื่อมต่อ Gist เรียบร้อยแล้ว');
+  });
 
   // Rules Handlers
   rulesForm.addEventListener('submit', (e) => {
@@ -222,6 +282,40 @@ function handleDBExport() {
   updateSyncStatus(true, 'ส่งออกไฟล์สำเร็จ! กรุณานำไปใส่ใน OneDrive โฟลเดอร์');
 }
 
+async function pullFromCloud() {
+  if (!gistConfig) return;
+  try {
+    const data = await fetchFromGist(gistConfig);
+    if (data) {
+      dbState = data;
+      saveToLocalStorage(dbState);
+      renderRules();
+      renderHolidays();
+      recalculateAndRender();
+      updateSyncStatus(true, 'ซิงค์ข้อมูลจาก Gist Cloud สำเร็จ!');
+    }
+  } catch (err: any) {
+    console.error(err);
+    alert('ไม่สามารถดึงข้อมูลจาก Cloud Gist ได้: ' + err.message);
+  }
+}
+
+async function pushToCloud() {
+  if (!gistConfig) {
+    alert('กรุณาตั้งค่าเชื่อมต่อ Gist ก่อน');
+    return;
+  }
+  try {
+    updateSyncStatus(true, 'กำลังส่งข้อมูลขึ้น Cloud...');
+    await updateGist(gistConfig, dbState);
+    updateSyncStatus(true, 'ส่งข้อมูลขึ้น Gist Cloud สำเร็จ!');
+    alert('อัปเดตข้อมูลขึ้น Cloud Gist สำเร็จแล้ว!');
+  } catch (err: any) {
+    console.error(err);
+    alert('ไม่สามารถส่งข้อมูลขึ้น Cloud Gist ได้: ' + err.message);
+  }
+}
+
 async function handleDBImport(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0];
   if (!file) return;
@@ -241,11 +335,16 @@ async function handleDBImport(e: Event) {
 }
 
 // Excel Upload Handler
+import { debugExcelStructure } from './excelDebug';
+
 async function handleExcelUpload() {
   const file = excelFileInput.files?.[0];
   if (!file) return;
 
   try {
+    const debugRows = await debugExcelStructure(file);
+    console.log("Raw Excel Rows (first 50):", debugRows);
+    
     parsedEmployees = await parseExcelFile(file);
     
     // Display file stats

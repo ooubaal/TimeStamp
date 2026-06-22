@@ -63,25 +63,41 @@ export function parseExcelFile(file: File): Promise<EmployeeData[]> {
           const row = rows[i];
           if (!row || row.length === 0) continue;
 
-          // Check if this row is an Employee Header
-          // Format from image:
-          // Col 0: รหัสพนักงาน (contains numeric ID e.g. 3630189)
-          // Col 2: ชื่อพนักงาน (contains name e.g. นางสาว ปุณยนุช แต่งผิว)
-          // Col 4: ตำแหน่งงาน
-          // Col 5: กลุ่มพนักงาน
-          // Col 6: หน่วยงาน (or nearby column)
-          
+          const nameIndex = row.findIndex(cell => String(cell || '').includes('ชื่อพนักงาน'));
+          const idIndex = row.findIndex(cell => String(cell || '').includes('รหัสพนักงาน'));
+
+          if (idIndex !== -1 && nameIndex !== -1) {
+            // This is the header row, e.g. "รหัสพนักงาน   รหัสบัตรพนักงาน   ชื่อพนักงาน"
+            // The actual employee details are usually on the row IMMEDIATELY below it!
+            const nextRow = rows[i + 1];
+            if (nextRow) {
+              const empId = String(nextRow[idIndex] || '').trim();
+              const empName = String(nextRow[nameIndex] || nextRow[nameIndex + 1] || '').trim();
+              
+              if (empId && empName && !empId.includes('รหัส')) {
+                currentEmployee = {
+                  id: empId,
+                  name: empName,
+                  position: String(nextRow[idIndex + 3] || nextRow[idIndex + 4] || '').trim(),
+                  group: String(nextRow[idIndex + 5] || '').trim(),
+                  department: String(nextRow[idIndex + 6] || nextRow[idIndex + 7] || '').trim(),
+                  records: {}
+                };
+                employeesMap[empId] = currentEmployee as EmployeeData;
+                currentDate = '';
+                i++; // Skip the next row since we processed it
+                continue;
+              }
+            }
+          }
+
+          // Fallback parser if employee ID is in column 0 and name is in column 2 on the row directly
           const col0Str = String(row[0] || '').trim();
           const col2Str = String(row[2] || '').trim();
-          
-          // Identify header indicator or just a new employee entry
-          // Usually, employee ID is numeric, and header row is "รหัสพนักงาน"
-          if (col0Str && col0Str !== 'รหัสพนักงาน' && col0Str !== 'รหัสบัตรพนักงาน' && !col0Str.includes('วันที่') && !col0Str.includes('สภากาชาดไทย') && !col0Str.includes('เวลา')) {
-            // Check if we hit an employee row
-            // If col0Str is a number, it's likely an employee ID!
-            const isEmployeeId = /^\d+$/.test(col0Str);
-            if (isEmployeeId && col2Str) {
-              const empId = col0Str;
+          if (/^\d{5,10}$/.test(col0Str) && col2Str && !col2Str.includes('ชื่อพนักงาน') && !col2Str.includes('เวลา')) {
+            const empId = col0Str;
+            // Ensure this is not a date (just in case)
+            if (!empId.includes('/')) {
               currentEmployee = {
                 id: empId,
                 name: col2Str,
@@ -97,29 +113,33 @@ export function parseExcelFile(file: File): Promise<EmployeeData[]> {
           }
 
           // If we have an active employee, check for date and time values
-          // Col 0 or Col 1 may contain Date like "03/10/2565"
-          // Col 2 or Col 3 may contain Time like "07:26"
+          // The Excel file can have empty cells or shifted columns due to merging.
+          // Let's inspect the entire row.
           if (currentEmployee) {
-            const potentialDate = String(row[0] || '').trim();
-            const potentialTime = String(row[2] || '').trim();
+            // Find any cell matching "DD/MM/YYYY" format
+            let foundDate = '';
+            let foundTimes: string[] = [];
 
-            // Date matches format DD/MM/YYYY (Buddhist era or standard)
-            const isDate = /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(potentialDate);
-            const isTime = /^\d{2}:\d{2}$/.test(potentialTime);
-
-            if (isDate) {
-              currentDate = parseThaiDate(potentialDate);
-              if (currentDate) {
-                if (!currentEmployee.records![currentDate]) {
-                  currentEmployee.records![currentDate] = [];
-                }
-                if (isTime) {
-                  currentEmployee.records![currentDate].push(potentialTime);
-                }
+            for (let c = 0; c < row.length; c++) {
+              const cellVal = String(row[c] || '').trim();
+              if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(cellVal)) {
+                foundDate = parseThaiDate(cellVal);
+              } else if (/^\d{2}:\d{2}$/.test(cellVal)) {
+                foundTimes.push(cellVal);
               }
-            } else if (currentDate && isTime) {
-              // Time only row, append to the last active date
-              currentEmployee.records![currentDate].push(potentialTime);
+            }
+
+            if (foundDate) {
+              currentDate = foundDate;
+              if (!currentEmployee.records![currentDate]) {
+                currentEmployee.records![currentDate] = [];
+              }
+              if (foundTimes.length > 0) {
+                currentEmployee.records![currentDate].push(...foundTimes);
+              }
+            } else if (currentDate && foundTimes.length > 0) {
+              // Append times to active date
+              currentEmployee.records![currentDate].push(...foundTimes);
             }
           }
         }
