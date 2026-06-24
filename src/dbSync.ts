@@ -32,6 +32,7 @@ export interface TimeStampDB {
   holidays: Holiday[];
   employees: EmployeeData[];
   importedFiles: string[];
+  fileDates?: { [filename: string]: string[] };
   version: string;
   updatedAt: string;
 }
@@ -56,6 +57,7 @@ export const initialDB = (): TimeStampDB => ({
   holidays: [],
   employees: [],
   importedFiles: [],
+  fileDates: {},
   version: "1.0.0",
   updatedAt: new Date().toISOString(),
 });
@@ -125,12 +127,14 @@ export function sanitizeDB(json: any): TimeStampDB {
   const holidays = Array.isArray(json.holidays) ? json.holidays : base.holidays;
   const employees = Array.isArray(json.employees) ? json.employees : base.employees;
   const importedFiles = Array.isArray(json.importedFiles) ? json.importedFiles : base.importedFiles;
+  const fileDates = json.fileDates && typeof json.fileDates === 'object' ? json.fileDates : base.fileDates;
   
   return {
     rules,
     holidays,
     employees,
     importedFiles,
+    fileDates,
     version: json.version || base.version,
     updatedAt: json.updatedAt || base.updatedAt
   };

@@ -150,8 +150,22 @@ function applyEmployeesFromState() {
           item.style.background = 'rgba(255, 255, 255, 0.05)';
           item.style.padding = '4px 8px';
           item.style.borderRadius = '4px';
-          item.innerHTML = `<span>📄 ${filename}</span>`;
+          item.innerHTML = `
+            <span>📄 ${filename}</span>
+            <button class="btn-delete-file" data-filename="${filename}" style="background: none; border: none; color: #f87171; cursor: pointer; font-size: 0.85rem; font-weight: bold; padding: 2px 6px;">✕</button>
+          `;
           fileListContainer.appendChild(item);
+        });
+
+        // Attach delete handlers for individual files
+        document.querySelectorAll('.btn-delete-file').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const filename = (e.currentTarget as HTMLElement).getAttribute('data-filename');
+            if (filename) {
+              deleteImportedFile(filename);
+            }
+          });
         });
       } else {
         fileListContainer.innerHTML = '<div style="font-style: italic; opacity: 0.6;">(ไม่มีรายชื่อไฟล์นำเข้า)</div>';
@@ -215,6 +229,42 @@ function applyEmployeesFromState() {
       </tr>
     `;
   }
+}
+
+function deleteImportedFile(filename: string) {
+  if (!confirm(`คุณต้องการลบไฟล์ "${filename}" และข้อมูลสแกนบัตรทั้งหมดในไฟล์นี้ใช่หรือไม่?`)) {
+    return;
+  }
+  
+  if (!dbState.importedFiles) return;
+  
+  const remainingFiles = dbState.importedFiles.filter(f => f !== filename);
+  
+  const remainingDates = new Set<string>();
+  remainingFiles.forEach(f => {
+    const dates = dbState.fileDates?.[f] || [];
+    dates.forEach(d => remainingDates.add(d));
+  });
+  
+  dbState.employees.forEach(emp => {
+    const newRecords: { [date: string]: string[] } = {};
+    for (const [date, times] of Object.entries(emp.records)) {
+      if (remainingDates.has(date)) {
+        newRecords[date] = times;
+      }
+    }
+    emp.records = newRecords;
+  });
+  
+  dbState.employees = dbState.employees.filter(emp => Object.keys(emp.records).length > 0);
+  
+  dbState.importedFiles = remainingFiles;
+  if (dbState.fileDates) {
+    delete dbState.fileDates[filename];
+  }
+  
+  saveAndSync();
+  applyEmployeesFromState();
 }
 
 function saveAndSync() {
@@ -541,6 +591,18 @@ async function handleExcelUpload() {
     if (!dbState.importedFiles.includes(file.name)) {
       dbState.importedFiles.push(file.name);
     }
+
+    // Save date sources
+    const fileDatesSet = new Set<string>();
+    freshlyParsed.forEach(emp => {
+      Object.keys(emp.records).forEach(date => {
+        fileDatesSet.add(date);
+      });
+    });
+    if (!dbState.fileDates) {
+      dbState.fileDates = {};
+    }
+    dbState.fileDates[file.name] = Array.from(fileDatesSet);
     
     saveAndSync();
     applyEmployeesFromState();
@@ -554,6 +616,7 @@ function clearLoadedData() {
   parsedEmployees = [];
   dbState.employees = [];
   dbState.importedFiles = [];
+  dbState.fileDates = {};
   saveAndSync();
   
   excelFileInput.value = '';
