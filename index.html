@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/TimeStamp/assets/index-jhlqxeDE.js"></script>
-    <link rel="stylesheet" crossorigin href="/TimeStamp/assets/index-B9GutpRX.css">
+    <script type="module" crossorigin src="/TimeStamp/assets/index-CK-1KZV3.js"></script>
+    <link rel="stylesheet" crossorigin href="/TimeStamp/assets/index-Bgg-r9PO.css">
   </head>
   <body>
     <div id="app">
@@ -272,8 +272,9 @@
               <label for="search-staff">ค้นหาชื่อเจ้าหน้าที่</label>
               <input type="text" id="search-staff" placeholder="ระบุชื่อหรือรหัส..." style="width: 100%;" />
             </div>
-            <div class="form-group action-group">
-              <button class="btn btn-success" id="btn-export-excel" style="width: 100%;">📊 ส่งออกรายงานสรุป (CSV)</button>
+            <div class="form-group action-group" style="display: flex; gap: 8px; width: 100%;">
+              <button class="btn btn-success" id="btn-export-excel" style="flex: 1;">📊 ส่งออก CSV</button>
+              <button class="btn btn-primary" id="btn-print-reports" style="flex: 1.2; background-color: #3b82f6; border-color: #2563eb;">🖨️ พิมพ์ใบเช็ควันลา (A4)</button>
             </div>
           </div>
         </section>
@@ -338,5 +339,6 @@
         <p>&copy; 2026 ระบบประมวลผลข้อมูลสแกนบัตรเข้างาน | ข้อมูลจัดเก็บบน OneDrive</p>
       </footer>
     </div>
+    <div id="print-container"></div>
   </body>
 </html>
