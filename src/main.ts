@@ -84,6 +84,56 @@ const modalTitle = document.getElementById('modal-title') as HTMLElement;
 const detailTableBody = document.getElementById('detail-table-body') as HTMLElement;
 const btnCloseModal = document.getElementById('btn-close-modal') as HTMLButtonElement;
 
+
+function applyEmployeesFromState() {
+  if (dbState.employees && dbState.employees.length > 0) {
+    parsedEmployees = dbState.employees;
+    
+    // Display file stats
+    fileInfoName.textContent = `ข้อมูลพนักงานสะสม (${parsedEmployees.length} คน)`;
+    dropzone.style.display = 'none';
+    fileInfo.style.display = 'flex';
+
+    // Extract Date limits
+    let allDates: string[] = [];
+    parsedEmployees.forEach(e => {
+      allDates.push(...Object.keys(e.records));
+    });
+    
+    if (allDates.length > 0) {
+      allDates.sort();
+      const minDate = allDates[0];
+      const maxDate = allDates[allDates.length - 1];
+      if (!filterStartDate.value) filterStartDate.value = minDate;
+      if (!filterEndDate.value) filterEndDate.value = maxDate;
+      statDaysCount.textContent = String(new Set(allDates).size);
+    }
+    
+    statStaffCount.textContent = String(parsedEmployees.length);
+    statsOverview.style.display = 'grid';
+    recalculateAndRender();
+  } else {
+    parsedEmployees = [];
+    excelFileInput.value = '';
+    dropzone.style.display = 'block';
+    fileInfo.style.display = 'none';
+    statsOverview.style.display = 'none';
+    
+    summaryTableBody.innerHTML = `
+      <tr>
+        <td colspan="8" class="text-center text-muted">กรุณานำเข้าไฟล์สแกนบัตร (Excel) เพื่อคำนวณและแสดงผลตารางสรุป</td>
+      </tr>
+    `;
+  }
+}
+
+function saveAndSync() {
+  saveToLocalStorage(dbState);
+  if (gistConfig) {
+    pushToCloud();
+  }
+}
+
 // App Setup
 function init() {
   updateSyncStatus(false, 'ใช้งานแบบ Local (บันทึกลงเบราว์เซอร์ชั่วคราว)');
@@ -169,7 +219,7 @@ function init() {
       earlyCheckoutAllowanceMinutes: parseInt(earlyAllowanceInput.value, 10) || 0,
       halfDayLateMinutes: parseInt(halfDayLateInput.value, 10) || 240,
     };
-    saveToLocalStorage(dbState);
+    saveAndSync();
     alert('บันทึกเงื่อนไขและเกณฑ์เวลาแล้ว!');
     recalculateAndRender();
   });
@@ -194,6 +244,9 @@ function init() {
 
   // Export CSV Summary
   btnExportExcel.addEventListener('click', handleCSVExport);
+
+  // Restore employee data from local storage if exists
+  applyEmployeesFromState();
 }
 
 // Update Database Sync Status Label
@@ -243,7 +296,7 @@ function renderHolidays() {
     btn.addEventListener('click', (e) => {
       const idx = parseInt((e.currentTarget as HTMLElement).getAttribute('data-index') || '0', 10);
       dbState.holidays.splice(idx, 1);
-      saveToLocalStorage(dbState);
+      saveAndSync();
       renderHolidays();
       recalculateAndRender();
     });
@@ -267,7 +320,7 @@ function handleAddHoliday() {
   }
 
   dbState.holidays.push({ date: dateVal, name: nameVal });
-  saveToLocalStorage(dbState);
+  saveAndSync();
   renderHolidays();
   
   // Clear input fields
@@ -294,7 +347,7 @@ async function pullFromCloud() {
       saveToLocalStorage(dbState);
       renderRules();
       renderHolidays();
-      recalculateAndRender();
+      applyEmployeesFromState();
       updateSyncStatus(true, 'ซิงค์ข้อมูลจาก Gist Cloud สำเร็จ!');
     }
   } catch (err: any) {
@@ -326,12 +379,12 @@ async function handleDBImport(e: Event) {
   try {
     const imported = await importFromJSONFile(file);
     dbState = imported;
-    saveToLocalStorage(dbState);
+    saveAndSync();
     renderRules();
     renderHolidays();
     updateSyncStatus(true, `เชื่อมต่อสำเร็จ: ${file.name}`);
     alert('นำเข้าฐานข้อมูลจาก OneDrive สำเร็จแล้ว!');
-    recalculateAndRender();
+    applyEmployeesFromState();
   } catch (err: any) {
     alert(err.message || 'การนำเข้าล้มเหลว');
   }
@@ -349,6 +402,8 @@ async function handleExcelUpload() {
     console.log("Raw Excel Rows (first 50):", debugRows);
     
     parsedEmployees = await parseExcelFile(file);
+    dbState.employees = parsedEmployees;
+    saveAndSync();
     
     // Display file stats
     fileInfoName.textContent = `${file.name} (${parsedEmployees.length} พนักงาน)`;
@@ -382,6 +437,9 @@ async function handleExcelUpload() {
 
 function clearLoadedData() {
   parsedEmployees = [];
+  dbState.employees = [];
+  saveAndSync();
+  
   excelFileInput.value = '';
   dropzone.style.display = 'block';
   fileInfo.style.display = 'none';

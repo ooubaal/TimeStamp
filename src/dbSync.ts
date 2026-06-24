@@ -12,9 +12,19 @@ export interface Holiday {
   name: string; // e.g. "วันปิยมหาราช"
 }
 
+export interface EmployeeData {
+  id: string;
+  name: string;
+  position: string;
+  group: string;
+  department: string;
+  records: { [date: string]: string[] }; // date -> times
+}
+
 export interface TimeStampDB {
   rules: RuleSettings;
   holidays: Holiday[];
+  employees: EmployeeData[];
   version: string;
   updatedAt: string;
 }
@@ -31,6 +41,7 @@ export const DEFAULT_RULES: RuleSettings = {
 export const initialDB = (): TimeStampDB => ({
   rules: { ...DEFAULT_RULES },
   holidays: [],
+  employees: [],
   version: "1.0.0",
   updatedAt: new Date().toISOString(),
 });
@@ -98,10 +109,12 @@ export function sanitizeDB(json: any): TimeStampDB {
   };
   
   const holidays = Array.isArray(json.holidays) ? json.holidays : base.holidays;
+  const employees = Array.isArray(json.employees) ? json.employees : base.employees;
   
   return {
     rules,
     holidays,
+    employees,
     version: json.version || base.version,
     updatedAt: json.updatedAt || base.updatedAt
   };
