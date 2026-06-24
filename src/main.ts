@@ -411,7 +411,7 @@ interface ProcessedDayRecord {
   date: string;
   checkIn: string;
   checkOut: string;
-  status: 'ปกติ' | 'สาย' | 'สายครึ่งวัน' | 'ลาครึ่งวันเช้า' | 'ลาครึ่งวันบ่าย' | 'ออกก่อนเวลา' | 'ไม่สแกนออก' | 'ไม่สแกนเข้า' | 'วันหยุด' | 'ลา/ขาดงาน' | 'OT3';
+  status: 'ปกติ' | 'สาย' | 'สายครึ่งวัน' | 'ลาครึ่งวันเช้า' | 'ลาครึ่งวันบ่าย' | 'ออกก่อนเวลา' | 'ไม่สแกนออก' | 'ไม่สแกนเข้า' | 'วันหยุด' | 'ลา/ขาดงาน' | 'OT3' | 'OT8';
   lateMinutes: number;
   earlyMinutes: number;
 }
@@ -602,6 +602,21 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
       }
     }
 
+    // Detect OT8 (Holiday Overtime >= 8 hours, 8:30 to 16:30 on weekends/holidays)
+    let isOT8 = false;
+    if (checkIn && checkOut && isHoliday) {
+      const inMin = timeToMinutes(checkIn);
+      const outMin = timeToMinutes(checkOut);
+      
+      // Calculate work duration excluding 1 hour break (normally 8:30 to 16:30 is 8 hours total duration)
+      // Check if check-in is around work start (e.g. <= 08:30 + allowance) and check-out is around work end (e.g. >= 16:30 - allowance)
+      const workDurationMinutes = outMin - inMin;
+      // 8 hours is 480 minutes (excluding 60 min break means 8:30 to 16:30 is 8 hours total span)
+      if (workDurationMinutes >= 480 - rules.earlyCheckoutAllowanceMinutes) {
+        isOT8 = true;
+      }
+    }
+
     if (isHalfDayAfternoonLeave) {
       status = 'ลาครึ่งวันบ่าย';
     } else if (isHalfDayMorningLeave) {
@@ -623,6 +638,8 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
       earlyOutCount++;
     } else if (isOT3) {
       status = 'OT3';
+    } else if (isOT8) {
+      status = 'OT8';
     }
 
     processedRecords.push({
@@ -724,6 +741,7 @@ function showStaffDetail(staff: ProcessedStaffSummary) {
     else if (r.status === 'ไม่สแกนออก' || r.status === 'ไม่สแกนเข้า') badgeClass = 'badge-danger';
     else if (r.status === 'ออกก่อนเวลา' || r.status === 'ลา/ขาดงาน' || r.status === 'ลาครึ่งวันเช้า' || r.status === 'ลาครึ่งวันบ่าย') badgeClass = 'badge-warning';
     else if (r.status === 'วันหยุด' || r.status === 'OT3') badgeClass = 'badge-info';
+    else if (r.status === 'OT8') badgeClass = 'badge-success';
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
