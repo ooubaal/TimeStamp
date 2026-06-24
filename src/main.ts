@@ -411,7 +411,7 @@ interface ProcessedDayRecord {
   date: string;
   checkIn: string;
   checkOut: string;
-  status: 'ปกติ' | 'สาย' | 'สายครึ่งวัน' | 'ลาครึ่งวันเช้า' | 'ลาครึ่งวันบ่าย' | 'ออกก่อนเวลา' | 'ไม่สแกนออก' | 'ไม่สแกนเข้า' | 'วันหยุด' | 'ลา/ขาดงาน';
+  status: 'ปกติ' | 'สาย' | 'สายครึ่งวัน' | 'ลาครึ่งวันเช้า' | 'ลาครึ่งวันบ่าย' | 'ออกก่อนเวลา' | 'ไม่สแกนออก' | 'ไม่สแกนเข้า' | 'วันหยุด' | 'ลา/ขาดงาน' | 'OT3';
   lateMinutes: number;
   earlyMinutes: number;
 }
@@ -592,6 +592,16 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
     let isMissingCheckOut = !checkOut && scans.length === 1;
     let isMissingCheckIn = !checkIn && scans.length === 1;
 
+    // Detect OT3 (Weekday Overtime >= 3 hours, after 16:30, meaning checkOut >= 19:30 on working days)
+    // 19:30 in minutes is 19 * 60 + 30 = 1170. Normal workdays (not weekend/holiday)
+    let isOT3 = false;
+    if (checkOut && !isHoliday) {
+      const outMin = timeToMinutes(checkOut);
+      if (outMin >= 1170) {
+        isOT3 = true;
+      }
+    }
+
     if (isHalfDayAfternoonLeave) {
       status = 'ลาครึ่งวันบ่าย';
     } else if (isHalfDayMorningLeave) {
@@ -611,6 +621,8 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
     } else if (isEarlyOut) {
       status = 'ออกก่อนเวลา';
       earlyOutCount++;
+    } else if (isOT3) {
+      status = 'OT3';
     }
 
     processedRecords.push({
@@ -711,7 +723,7 @@ function showStaffDetail(staff: ProcessedStaffSummary) {
     else if (r.status === 'สายครึ่งวัน') badgeClass = 'badge-danger';
     else if (r.status === 'ไม่สแกนออก' || r.status === 'ไม่สแกนเข้า') badgeClass = 'badge-danger';
     else if (r.status === 'ออกก่อนเวลา' || r.status === 'ลา/ขาดงาน' || r.status === 'ลาครึ่งวันเช้า' || r.status === 'ลาครึ่งวันบ่าย') badgeClass = 'badge-warning';
-    else if (r.status === 'วันหยุด') badgeClass = 'badge-info';
+    else if (r.status === 'วันหยุด' || r.status === 'OT3') badgeClass = 'badge-info';
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
