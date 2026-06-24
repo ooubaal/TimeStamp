@@ -527,8 +527,8 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
         }
       }
     } else {
-      // Missing Check-in
-      isLate = true;
+      // Missing Check-in (will be caught by isMissingCheckIn status check)
+      isLate = false;
     }
 
     // Calculate Early Checkout
