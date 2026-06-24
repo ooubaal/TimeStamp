@@ -1260,23 +1260,8 @@ function handlePrintReports() {
             <td></td>
             <td></td>
           </tr>
-          <tr>
-            <td style="font-weight: bold;">ผู้ตรวจ</td>
-            <td colspan="2" style="font-style: italic; color: #555;">(ลงชื่อเพื่อรับรองความถูกต้องของรายการด้านบน)</td>
-          </tr>
         </tbody>
       </table>
-
-      <div class="print-signatures">
-        <div>
-          <p style="margin-bottom: 25px;">ลงชื่อ..............................................................เจ้าหน้าที่ผู้ตรวจสอบ</p>
-          <p>วันที่ .......... / .......... / ..........</p>
-        </div>
-        <div>
-          <p style="margin-bottom: 25px;">ลงชื่อ..............................................................หัวหน้างาน/ผู้รับรอง</p>
-          <p>วันที่ .......... / .......... / ..........</p>
-        </div>
-      </div>
     `;
 
     printContainer.appendChild(page);
