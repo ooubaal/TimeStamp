@@ -66,6 +66,12 @@ const afternoonWorkEndInput = document.getElementById('afternoonWorkEnd') as HTM
 const lateAllowanceInput = document.getElementById('lateAllowanceMinutes') as HTMLInputElement;
 const earlyAllowanceInput = document.getElementById('earlyCheckoutAllowanceMinutes') as HTMLInputElement;
 const halfDayLateInput = document.getElementById('halfDayLateMinutes') as HTMLInputElement;
+const morningLeaveStartInput = document.getElementById('morningLeaveStart') as HTMLInputElement;
+const morningLeaveEndInput = document.getElementById('morningLeaveEnd') as HTMLInputElement;
+const afternoonLeaveStartInput = document.getElementById('afternoonLeaveStart') as HTMLInputElement;
+const afternoonLeaveEndInput = document.getElementById('afternoonLeaveEnd') as HTMLInputElement;
+const otWeekdayStartInput = document.getElementById('otWeekdayStart') as HTMLInputElement;
+const otHolidayHoursInput = document.getElementById('otHolidayHours') as HTMLInputElement;
 
 const holidayDateInput = document.getElementById('holiday-date') as HTMLInputElement;
 const holidayNameInput = document.getElementById('holiday-name') as HTMLInputElement;
@@ -271,6 +277,12 @@ function init() {
       lateAllowanceMinutes: parseInt(lateAllowanceInput.value, 10) || 0,
       earlyCheckoutAllowanceMinutes: parseInt(earlyAllowanceInput.value, 10) || 0,
       halfDayLateMinutes: parseInt(halfDayLateInput.value, 10) || 240,
+      morningLeaveStart: morningLeaveStartInput.value,
+      morningLeaveEnd: morningLeaveEndInput.value,
+      afternoonLeaveStart: afternoonLeaveStartInput.value,
+      afternoonLeaveEnd: afternoonLeaveEndInput.value,
+      otWeekdayStart: otWeekdayStartInput.value,
+      otHolidayHours: parseInt(otHolidayHoursInput.value, 10) || 8,
     };
     saveAndSync();
     alert('บันทึกเงื่อนไขและเกณฑ์เวลาแล้ว!');
@@ -321,6 +333,12 @@ function renderRules() {
   lateAllowanceInput.value = String(r.lateAllowanceMinutes);
   earlyAllowanceInput.value = String(r.earlyCheckoutAllowanceMinutes);
   halfDayLateInput.value = String(r.halfDayLateMinutes);
+  morningLeaveStartInput.value = r.morningLeaveStart || "10:30";
+  morningLeaveEndInput.value = r.morningLeaveEnd || "13:00";
+  afternoonLeaveStartInput.value = r.afternoonLeaveStart || "12:00";
+  afternoonLeaveEndInput.value = r.afternoonLeaveEnd || "13:00";
+  otWeekdayStartInput.value = r.otWeekdayStart || "19:30";
+  otHolidayHoursInput.value = String(r.otHolidayHours || 8);
 }
 
 // Holidays UI update
@@ -508,7 +526,7 @@ interface ProcessedDayRecord {
   date: string;
   checkIn: string;
   checkOut: string;
-  status: 'ปกติ' | 'สาย' | 'สายครึ่งวัน' | 'ลาครึ่งวันเช้า' | 'ลาครึ่งวันบ่าย' | 'ออกก่อนเวลา' | 'ไม่สแกนออก' | 'ไม่สแกนเข้า' | 'วันหยุด' | 'ลา/ขาดงาน' | 'OT3' | 'OT8';
+  status: string;
   lateMinutes: number;
   earlyMinutes: number;
 }
@@ -852,8 +870,7 @@ function showStaffDetail(staff: ProcessedStaffSummary) {
       else if (r.status === 'สายครึ่งวัน') badgeClass = 'badge-danger';
       else if (r.status === 'ไม่สแกนออก' || r.status === 'ไม่สแกนเข้า') badgeClass = 'badge-danger';
       else if (r.status === 'ออกก่อนเวลา' || r.status === 'ลา/ขาดงาน' || r.status === 'ลาครึ่งวันเช้า' || r.status === 'ลาครึ่งวันบ่าย') badgeClass = 'badge-warning';
-      else if (r.status === 'วันหยุด' || r.status === 'OT3') badgeClass = 'badge-info';
-      else if (r.status === 'OT8') badgeClass = 'badge-success';
+      else if (r.status === 'วันหยุด' || r.status.startsWith('OT')) badgeClass = 'badge-info';
 
       // Check if weekend or holiday
       const dateObj = new Date(r.date);

@@ -5,6 +5,12 @@ export interface RuleSettings {
   lateAllowanceMinutes: number; // e.g. 0 minutes
   halfDayLateMinutes: number; // e.g. 120 minutes (sian for half day)
   earlyCheckoutAllowanceMinutes: number; // e.g. 0 minutes
+  morningLeaveStart: string; // "10:30"
+  morningLeaveEnd: string; // "13:00"
+  afternoonLeaveStart: string; // "12:00"
+  afternoonLeaveEnd: string; // "13:00"
+  otWeekdayStart: string; // "19:30"
+  otHolidayHours: number; // e.g. 8
 }
 
 export interface Holiday {
@@ -36,6 +42,12 @@ export const DEFAULT_RULES: RuleSettings = {
   lateAllowanceMinutes: 0,
   halfDayLateMinutes: 240,
   earlyCheckoutAllowanceMinutes: 0,
+  morningLeaveStart: "10:30",
+  morningLeaveEnd: "13:00",
+  afternoonLeaveStart: "12:00",
+  afternoonLeaveEnd: "13:00",
+  otWeekdayStart: "19:30",
+  otHolidayHours: 8,
 };
 
 // Initial empty DB structure
