@@ -56,12 +56,12 @@
       <td><span class="badge ${e.leaveCount>0?`badge-warning`:`badge-success`}">${e.leaveCount} วัน</span></td>
       <td><span class="badge ${e.earlyOutCount>0?`badge-warning`:`badge-success`}">${e.earlyOutCount} ครั้ง</span></td>
       <td><button class="btn btn-secondary btn-sm btn-view-detail" data-id="${e.id}">🔍 รายละเอียด</button></td>
-    `,Sh.appendChild(t)}),document.querySelectorAll(`.btn-view-detail`).forEach(e=>{e.addEventListener(`click`,e=>{let t=e.currentTarget.getAttribute(`data-id`),n=Bh.find(e=>e.id===t);n&&Hh(n)})})}function Hh(e){wh.textContent=`รายละเอียดเวลาปฏิบัติงาน: ${e.name} (${e.id}) - ${e.position}`,Th.innerHTML=``,e.records.forEach(e=>{let t=`badge-success`;e.status===`สาย`||e.status===`สายครึ่งวัน`||e.status===`ไม่สแกนออก`||e.status===`ไม่สแกนเข้า`?t=`badge-danger`:e.status===`ออกก่อนเวลา`||e.status===`ลา/ขาดงาน`||e.status===`ลาครึ่งวันเช้า`||e.status===`ลาครึ่งวันบ่าย`?t=`badge-warning`:e.status===`วันหยุด`||e.status===`OT3`?t=`badge-info`:e.status===`OT8`&&(t=`badge-success`);let n=document.createElement(`tr`);n.innerHTML=`
-      <td>${e.date}</td>
-      <td>${e.checkIn}</td>
-      <td>${e.checkOut}</td>
-      <td><span class="badge ${t}">${e.status}</span></td>
-      <td>${e.lateMinutes>0?e.lateMinutes+` นาที`:`-`}</td>
-      <td>${e.earlyMinutes>0?e.earlyMinutes+` นาที`:`-`}</td>
-    `,Th.appendChild(n)}),Ch.style.display=`flex`}function Uh(){if(Bh.length===0){alert(`ไม่มีข้อมูลสำหรับส่งออกรายงาน`);return}let e=[[`รหัสพนักงาน`,`ชื่อพนักงาน`,`ตำแหน่งงาน`,`ฝ่าย/หน่วยงาน`,`มาทำงาน (วัน)`,`สาย (ครั้ง)`,`ลา/ขาดงาน (วัน)`,`ออกก่อนเวลา (ครั้ง)`].join(`,`)];Bh.forEach(t=>{let n=[`"${t.id}"`,`"${t.name}"`,`"${t.position}"`,`"${t.department}"`,t.workedDays,t.lateCount,t.leaveCount,t.earlyOutCount];e.push(n.join(`,`))});let t=`﻿`+e.join(`
+    `,Sh.appendChild(t)}),document.querySelectorAll(`.btn-view-detail`).forEach(e=>{e.addEventListener(`click`,e=>{let t=e.currentTarget.getAttribute(`data-id`),n=Bh.find(e=>e.id===t);n&&Hh(n)})})}function Hh(e){wh.textContent=`รายละเอียดเวลาปฏิบัติงาน: ${e.name} (${e.id}) - ${e.position}`,Th.innerHTML=``;let t=e=>{let t=[`อา.`,`จ.`,`อ.`,`พ.`,`พฤ.`,`ศ.`,`ส.`][new Date(e).getDay()],n=e.split(`-`);if(n.length===3){let e=n[0],r=n[1];return`${t} ${n[2]}/${r}/${e}`}return e};e.records.forEach(e=>{let n=`badge-success`;e.status===`สาย`||e.status===`สายครึ่งวัน`||e.status===`ไม่สแกนออก`||e.status===`ไม่สแกนเข้า`?n=`badge-danger`:e.status===`ออกก่อนเวลา`||e.status===`ลา/ขาดงาน`||e.status===`ลาครึ่งวันเช้า`||e.status===`ลาครึ่งวันบ่าย`?n=`badge-warning`:e.status===`วันหยุด`||e.status===`OT3`?n=`badge-info`:e.status===`OT8`&&(n=`badge-success`);let r=document.createElement(`tr`);r.innerHTML=`
+        <td>${t(e.date)}</td>
+        <td>${e.checkIn}</td>
+        <td>${e.checkOut}</td>
+        <td><span class="badge ${n}">${e.status}</span></td>
+        <td>${e.lateMinutes>0?e.lateMinutes+` นาที`:`-`}</td>
+        <td>${e.earlyMinutes>0?e.earlyMinutes+` นาที`:`-`}</td>
+      `,Th.appendChild(r)}),Ch.style.display=`flex`}function Uh(){if(Bh.length===0){alert(`ไม่มีข้อมูลสำหรับส่งออกรายงาน`);return}let e=[[`รหัสพนักงาน`,`ชื่อพนักงาน`,`ตำแหน่งงาน`,`ฝ่าย/หน่วยงาน`,`มาทำงาน (วัน)`,`สาย (ครั้ง)`,`ลา/ขาดงาน (วัน)`,`ออกก่อนเวลา (ครั้ง)`].join(`,`)];Bh.forEach(t=>{let n=[`"${t.id}"`,`"${t.name}"`,`"${t.position}"`,`"${t.department}"`,t.workedDays,t.lateCount,t.leaveCount,t.earlyOutCount];e.push(n.join(`,`))});let t=`﻿`+e.join(`
 `),n=new Blob([t],{type:`text/csv;charset=utf-8;`}),r=URL.createObjectURL(n),i=document.createElement(`a`);i.href=r,i.download=`รายงานสรุปเวลาทำงาน_${new Date().toISOString().split(`T`)[0]}.csv`,document.body.appendChild(i),i.click(),document.body.removeChild(i),URL.revokeObjectURL(r)}document.addEventListener(`DOMContentLoaded`,Dh);
