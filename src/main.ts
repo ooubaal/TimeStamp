@@ -55,6 +55,7 @@ const fileInfo = document.getElementById('file-info') as HTMLElement;
 const fileInfoName = fileInfo.querySelector('.file-name') as HTMLElement;
 const fileListContainer = document.getElementById('file-list-container') as HTMLElement;
 const btnClearFile = document.getElementById('btn-clear-file') as HTMLButtonElement;
+const btnAddMoreFiles = document.getElementById('btn-add-more-files') as HTMLButtonElement;
 
 const statStaffCount = document.getElementById('stat-staff-count') as HTMLElement;
 const statDaysCount = document.getElementById('stat-days-count') as HTMLElement;
@@ -222,6 +223,12 @@ function init() {
   });
 
   btnClearFile.addEventListener('click', clearLoadedData);
+  if (btnAddMoreFiles) {
+    btnAddMoreFiles.addEventListener('click', () => {
+      excelFileInput.value = '';
+      excelFileInput.click();
+    });
+  }
 
   // DB Sync Handlers
   btnImportDB.addEventListener('click', () => dbFileInput.click());
