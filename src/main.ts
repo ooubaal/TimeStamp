@@ -83,6 +83,9 @@ const filterStartDate = document.getElementById('filter-start-date') as HTMLInpu
 const filterEndDate = document.getElementById('filter-end-date') as HTMLInputElement;
 const searchStaff = document.getElementById('search-staff') as HTMLInputElement;
 const btnExportExcel = document.getElementById('btn-export-excel') as HTMLButtonElement;
+const filterModeSelect = document.getElementById('filter-mode') as HTMLSelectElement;
+const filterMonthSelect = document.getElementById('filter-month') as HTMLSelectElement;
+const filterYearSelect = document.getElementById('filter-year') as HTMLSelectElement;
 
 const summaryTableBody = document.getElementById('summary-table-body') as HTMLElement;
 
@@ -165,6 +168,31 @@ function applyEmployeesFromState() {
       const maxDate = allDates[allDates.length - 1];
       if (!filterStartDate.value) filterStartDate.value = minDate;
       if (!filterEndDate.value) filterEndDate.value = maxDate;
+
+      // Extract Year and Month from minDate to preselect dropdowns
+      const parts = minDate.split('-');
+      if (parts.length === 3) {
+        const year = parts[0];
+        const month = parts[1];
+
+        // Ensure year exists in year dropdown
+        let hasYear = false;
+        for (let i = 0; i < filterYearSelect.options.length; i++) {
+          if (filterYearSelect.options[i].value === year) {
+            hasYear = true;
+            break;
+          }
+        }
+        if (!hasYear) {
+          const opt = document.createElement('option');
+          opt.value = year;
+          opt.textContent = year;
+          filterYearSelect.appendChild(opt);
+        }
+        filterYearSelect.value = year;
+        filterMonthSelect.value = month;
+      }
+
       statDaysCount.textContent = String(new Set(allDates).size);
     }
     
@@ -300,6 +328,24 @@ function init() {
   btnAddHoliday.addEventListener('click', handleAddHoliday);
   
   // Filters Event Listeners
+  const dateGroups = document.querySelectorAll('.filter-date-group') as NodeListOf<HTMLElement>;
+  const monthlyGroups = document.querySelectorAll('.filter-monthly-group') as NodeListOf<HTMLElement>;
+
+  const updateFilterVisibility = () => {
+    const isMonthly = filterModeSelect.value === 'monthly';
+    dateGroups.forEach(g => g.style.display = isMonthly ? 'none' : 'block');
+    monthlyGroups.forEach(g => g.style.display = isMonthly ? 'flex' : 'none');
+  };
+
+  updateFilterVisibility();
+
+  filterModeSelect.addEventListener('change', () => {
+    updateFilterVisibility();
+    recalculateAndRender();
+  });
+  filterMonthSelect.addEventListener('change', recalculateAndRender);
+  filterYearSelect.addEventListener('change', recalculateAndRender);
+
   filterStartDate.addEventListener('change', recalculateAndRender);
   filterEndDate.addEventListener('change', recalculateAndRender);
   searchStaff.addEventListener('input', recalculateAndRender);
@@ -797,8 +843,17 @@ let currentProcessedSummaries: ProcessedStaffSummary[] = [];
 function recalculateAndRender() {
   if (parsedEmployees.length === 0) return;
 
-  const startVal = filterStartDate.value;
-  const endVal = filterEndDate.value;
+  let startVal = filterStartDate.value;
+  let endVal = filterEndDate.value;
+
+  if (filterModeSelect.value === 'monthly') {
+    const year = filterYearSelect.value;
+    const month = filterMonthSelect.value;
+    startVal = `${year}-${month}-01`;
+    const lastDay = new Date(Number(year), Number(month), 0).getDate();
+    endVal = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+  }
+
   const searchVal = searchStaff.value.trim().toLowerCase();
 
   // Run business calculations for all employees
@@ -823,16 +878,54 @@ function recalculateAndRender() {
     return;
   }
 
+  const getShortDate = (dateStr: string) => {
+    const p = dateStr.split('-');
+    return p.length === 3 ? `${p[2]}/${p[1]}` : dateStr;
+  };
+
   filtered.forEach(s => {
+    // Extract Late dates
+    const lateDates = s.records
+      .filter(r => r.status === 'สาย' || r.status === 'สายครึ่งวัน')
+      .map(r => getShortDate(r.date));
+      
+    // Extract Leave dates
+    const leaveDates = s.records
+      .filter(r => r.status === 'ลา/ขาดงาน' || r.status === 'ลาครึ่งวันเช้า' || r.status === 'ลาครึ่งวันบ่าย')
+      .map(r => {
+        const shortD = getShortDate(r.date);
+        if (r.status === 'ลาครึ่งวันเช้า') return `${shortD}(เช้า)`;
+        if (r.status === 'ลาครึ่งวันบ่าย') return `${shortD}(บ่าย)`;
+        return shortD;
+      });
+
+    // Extract Early dates
+    const earlyDates = s.records
+      .filter(r => r.status === 'ออกก่อนเวลา')
+      .map(r => getShortDate(r.date));
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><strong>${s.id}</strong></td>
       <td>${s.name}</td>
       <td><span class="text-muted">${s.department}</span></td>
       <td><span class="badge badge-info">${s.workedDays} วัน</span></td>
-      <td><span class="badge ${s.lateCount > 0 ? 'badge-danger' : 'badge-success'}">${s.lateCount} ครั้ง</span></td>
-      <td><span class="badge ${s.leaveCount > 0 ? 'badge-warning' : 'badge-success'}">${s.leaveCount} วัน</span></td>
-      <td><span class="badge ${s.earlyOutCount > 0 ? 'badge-warning' : 'badge-success'}">${s.earlyOutCount} ครั้ง</span></td>
+      
+      <td>
+        <span class="badge ${s.lateCount > 0 ? 'badge-danger' : 'badge-success'}">${s.lateCount} ครั้ง</span>
+        ${lateDates.length > 0 ? `<div style="font-size: 0.75rem; opacity: 0.8; margin-top: 4px; max-width: 140px; word-wrap: break-word; color: #f87171;">${lateDates.join(', ')}</div>` : ''}
+      </td>
+      
+      <td>
+        <span class="badge ${s.leaveCount > 0 ? 'badge-warning' : 'badge-success'}">${s.leaveCount} วัน</span>
+        ${leaveDates.length > 0 ? `<div style="font-size: 0.75rem; opacity: 0.8; margin-top: 4px; max-width: 140px; word-wrap: break-word; color: #fbbf24;">${leaveDates.join(', ')}</div>` : ''}
+      </td>
+      
+      <td>
+        <span class="badge ${s.earlyOutCount > 0 ? 'badge-warning' : 'badge-success'}">${s.earlyOutCount} ครั้ง</span>
+        ${earlyDates.length > 0 ? `<div style="font-size: 0.75rem; opacity: 0.8; margin-top: 4px; max-width: 140px; word-wrap: break-word; color: #fbbf24;">${earlyDates.join(', ')}</div>` : ''}
+      </td>
+      
       <td><button class="btn btn-secondary btn-sm btn-view-detail" data-id="${s.id}">🔍 รายละเอียด</button></td>
     `;
     summaryTableBody.appendChild(tr);
