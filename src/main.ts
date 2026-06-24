@@ -733,26 +733,42 @@ function showStaffDetail(staff: ProcessedStaffSummary) {
   modalTitle.textContent = `รายละเอียดเวลาปฏิบัติงาน: ${staff.name} (${staff.id}) - ${staff.position}`;
   detailTableBody.innerHTML = '';
 
-  staff.records.forEach(r => {
-    let badgeClass = 'badge-success';
-    if (r.status === 'สาย') badgeClass = 'badge-danger';
-    else if (r.status === 'สายครึ่งวัน') badgeClass = 'badge-danger';
-    else if (r.status === 'ไม่สแกนออก' || r.status === 'ไม่สแกนเข้า') badgeClass = 'badge-danger';
-    else if (r.status === 'ออกก่อนเวลา' || r.status === 'ลา/ขาดงาน' || r.status === 'ลาครึ่งวันเช้า' || r.status === 'ลาครึ่งวันบ่าย') badgeClass = 'badge-warning';
-    else if (r.status === 'วันหยุด' || r.status === 'OT3') badgeClass = 'badge-info';
-    else if (r.status === 'OT8') badgeClass = 'badge-success';
+    // Helper to format date with Thai day prefix: e.g. "จ. 03/10/2022"
+    const formatDateWithThaiDay = (dateStr: string): string => {
+      const days = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+      const dateObj = new Date(dateStr);
+      const dayName = days[dateObj.getDay()];
+      
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const yyyy = parts[0];
+        const mm = parts[1];
+        const dd = parts[2];
+        return `${dayName} ${dd}/${mm}/${yyyy}`;
+      }
+      return dateStr;
+    };
 
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${r.date}</td>
-      <td>${r.checkIn}</td>
-      <td>${r.checkOut}</td>
-      <td><span class="badge ${badgeClass}">${r.status}</span></td>
-      <td>${r.lateMinutes > 0 ? r.lateMinutes + ' นาที' : '-'}</td>
-      <td>${r.earlyMinutes > 0 ? r.earlyMinutes + ' นาที' : '-'}</td>
-    `;
-    detailTableBody.appendChild(tr);
-  });
+    staff.records.forEach(r => {
+      let badgeClass = 'badge-success';
+      if (r.status === 'สาย') badgeClass = 'badge-danger';
+      else if (r.status === 'สายครึ่งวัน') badgeClass = 'badge-danger';
+      else if (r.status === 'ไม่สแกนออก' || r.status === 'ไม่สแกนเข้า') badgeClass = 'badge-danger';
+      else if (r.status === 'ออกก่อนเวลา' || r.status === 'ลา/ขาดงาน' || r.status === 'ลาครึ่งวันเช้า' || r.status === 'ลาครึ่งวันบ่าย') badgeClass = 'badge-warning';
+      else if (r.status === 'วันหยุด' || r.status === 'OT3') badgeClass = 'badge-info';
+      else if (r.status === 'OT8') badgeClass = 'badge-success';
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${formatDateWithThaiDay(r.date)}</td>
+        <td>${r.checkIn}</td>
+        <td>${r.checkOut}</td>
+        <td><span class="badge ${badgeClass}">${r.status}</span></td>
+        <td>${r.lateMinutes > 0 ? r.lateMinutes + ' นาที' : '-'}</td>
+        <td>${r.earlyMinutes > 0 ? r.earlyMinutes + ' นาที' : '-'}</td>
+      `;
+      detailTableBody.appendChild(tr);
+    });
 
   detailModal.style.display = 'flex';
 }
