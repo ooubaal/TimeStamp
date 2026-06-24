@@ -53,6 +53,7 @@ const dropzone = document.getElementById('dropzone') as HTMLElement;
 const excelFileInput = document.getElementById('excel-file-input') as HTMLInputElement;
 const fileInfo = document.getElementById('file-info') as HTMLElement;
 const fileInfoName = fileInfo.querySelector('.file-name') as HTMLElement;
+const fileListContainer = document.getElementById('file-list-container') as HTMLElement;
 const btnClearFile = document.getElementById('btn-clear-file') as HTMLButtonElement;
 
 const statStaffCount = document.getElementById('stat-staff-count') as HTMLElement;
@@ -85,6 +86,37 @@ const detailTableBody = document.getElementById('detail-table-body') as HTMLElem
 const btnCloseModal = document.getElementById('btn-close-modal') as HTMLButtonElement;
 
 
+function mergeEmployeeRecords(existing: EmployeeData[], newEmployees: EmployeeData[]): EmployeeData[] {
+  const mergedMap = new Map<string, EmployeeData>();
+  
+  existing.forEach(emp => {
+    mergedMap.set(emp.id, {
+      ...emp,
+      records: { ...emp.records }
+    });
+  });
+  
+  newEmployees.forEach(newEmp => {
+    if (mergedMap.has(newEmp.id)) {
+      const existingEmp = mergedMap.get(newEmp.id)!;
+      for (const [date, times] of Object.entries(newEmp.records)) {
+        existingEmp.records[date] = Array.from(new Set([...(existingEmp.records[date] || []), ...times])).sort();
+      }
+      if (newEmp.name) existingEmp.name = newEmp.name;
+      if (newEmp.position) existingEmp.position = newEmp.position;
+      if (newEmp.group) existingEmp.group = newEmp.group;
+      if (newEmp.department) existingEmp.department = newEmp.department;
+    } else {
+      mergedMap.set(newEmp.id, {
+        ...newEmp,
+        records: { ...newEmp.records }
+      });
+    }
+  });
+  
+  return Array.from(mergedMap.values());
+}
+
 function applyEmployeesFromState() {
   if (dbState.employees && dbState.employees.length > 0) {
     parsedEmployees = dbState.employees;
@@ -93,6 +125,26 @@ function applyEmployeesFromState() {
     fileInfoName.textContent = `ข้อมูลพนักงานสะสม (${parsedEmployees.length} คน)`;
     dropzone.style.display = 'none';
     fileInfo.style.display = 'flex';
+
+    // Render imported file list
+    if (fileListContainer) {
+      fileListContainer.innerHTML = '';
+      if (dbState.importedFiles && dbState.importedFiles.length > 0) {
+        dbState.importedFiles.forEach((filename) => {
+          const item = document.createElement('div');
+          item.style.display = 'flex';
+          item.style.justifyContent = 'space-between';
+          item.style.alignItems = 'center';
+          item.style.background = 'rgba(255, 255, 255, 0.05)';
+          item.style.padding = '4px 8px';
+          item.style.borderRadius = '4px';
+          item.innerHTML = `<span>📄 ${filename}</span>`;
+          fileListContainer.appendChild(item);
+        });
+      } else {
+        fileListContainer.innerHTML = '<div style="font-style: italic; opacity: 0.6;">(ไม่มีรายชื่อไฟล์นำเข้า)</div>';
+      }
+    }
 
     // Extract Date limits
     let allDates: string[] = [];
@@ -118,6 +170,7 @@ function applyEmployeesFromState() {
     dropzone.style.display = 'block';
     fileInfo.style.display = 'none';
     statsOverview.style.display = 'none';
+    if (fileListContainer) fileListContainer.innerHTML = '';
     
     summaryTableBody.innerHTML = `
       <tr>
@@ -401,34 +454,18 @@ async function handleExcelUpload() {
     const debugRows = await debugExcelStructure(file);
     console.log("Raw Excel Rows (first 50):", debugRows);
     
-    parsedEmployees = await parseExcelFile(file);
-    dbState.employees = parsedEmployees;
-    saveAndSync();
+    const freshlyParsed = await parseExcelFile(file);
+    dbState.employees = mergeEmployeeRecords(dbState.employees || [], freshlyParsed);
     
-    // Display file stats
-    fileInfoName.textContent = `${file.name} (${parsedEmployees.length} พนักงาน)`;
-    dropzone.style.display = 'none';
-    fileInfo.style.display = 'flex';
-
-    // Extract Date limits
-    let allDates: string[] = [];
-    parsedEmployees.forEach(e => {
-      allDates.push(...Object.keys(e.records));
-    });
-    
-    if (allDates.length > 0) {
-      allDates.sort();
-      const minDate = allDates[0];
-      const maxDate = allDates[allDates.length - 1];
-      filterStartDate.value = minDate;
-      filterEndDate.value = maxDate;
-      statDaysCount.textContent = String(new Set(allDates).size);
+    if (!dbState.importedFiles) {
+      dbState.importedFiles = [];
+    }
+    if (!dbState.importedFiles.includes(file.name)) {
+      dbState.importedFiles.push(file.name);
     }
     
-    statStaffCount.textContent = String(parsedEmployees.length);
-    statsOverview.style.display = 'grid';
-
-    recalculateAndRender();
+    saveAndSync();
+    applyEmployeesFromState();
   } catch (err) {
     console.error(err);
     alert('เกิดข้อผิดพลาดในการเปิดและสแกนไฟล์ Excel กรุณาตรวจสอบรูปแบบไฟล์ต้นฉบับ');
@@ -438,12 +475,14 @@ async function handleExcelUpload() {
 function clearLoadedData() {
   parsedEmployees = [];
   dbState.employees = [];
+  dbState.importedFiles = [];
   saveAndSync();
   
   excelFileInput.value = '';
   dropzone.style.display = 'block';
   fileInfo.style.display = 'none';
   statsOverview.style.display = 'none';
+  if (fileListContainer) fileListContainer.innerHTML = '';
   
   summaryTableBody.innerHTML = `
     <tr>

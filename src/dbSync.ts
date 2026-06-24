@@ -25,6 +25,7 @@ export interface TimeStampDB {
   rules: RuleSettings;
   holidays: Holiday[];
   employees: EmployeeData[];
+  importedFiles: string[];
   version: string;
   updatedAt: string;
 }
@@ -42,6 +43,7 @@ export const initialDB = (): TimeStampDB => ({
   rules: { ...DEFAULT_RULES },
   holidays: [],
   employees: [],
+  importedFiles: [],
   version: "1.0.0",
   updatedAt: new Date().toISOString(),
 });
@@ -51,7 +53,7 @@ export function loadFromLocalStorage(): TimeStampDB {
   const data = localStorage.getItem("TimeStampDB");
   if (data) {
     try {
-      return JSON.parse(data);
+      return sanitizeDB(JSON.parse(data));
     } catch (e) {
       console.error("Failed to parse TimeStampDB from localStorage", e);
     }
@@ -110,11 +112,13 @@ export function sanitizeDB(json: any): TimeStampDB {
   
   const holidays = Array.isArray(json.holidays) ? json.holidays : base.holidays;
   const employees = Array.isArray(json.employees) ? json.employees : base.employees;
+  const importedFiles = Array.isArray(json.importedFiles) ? json.importedFiles : base.importedFiles;
   
   return {
     rules,
     holidays,
     employees,
+    importedFiles,
     version: json.version || base.version,
     updatedAt: json.updatedAt || base.updatedAt
   };
