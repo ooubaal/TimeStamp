@@ -411,7 +411,7 @@ interface ProcessedDayRecord {
   date: string;
   checkIn: string;
   checkOut: string;
-  status: 'ปกติ' | 'สาย' | 'สายครึ่งวัน' | 'ออกก่อนเวลา' | 'วันหยุด' | 'ลา/ขาดงาน';
+  status: 'ปกติ' | 'สาย' | 'สายครึ่งวัน' | 'ลาครึ่งวัน' | 'ออกก่อนเวลา' | 'วันหยุด' | 'ลา/ขาดงาน';
   lateMinutes: number;
   earlyMinutes: number;
 }
@@ -532,12 +532,21 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
     }
 
     // Calculate Early Checkout
+    let isHalfDayLeave = false;
     if (checkOut) {
       const outMin = timeToMinutes(checkOut);
-      const diff = normalOutMinutes - outMin;
-      if (diff > rules.earlyCheckoutAllowanceMinutes) {
-        earlyMinutes = diff;
-        isEarlyOut = true;
+      
+      // If check-out is around midday break (e.g. 12:00 - 13:00) and check-in was normal, it counts as "Half-Day Leave (afternoon)"
+      // Noon break is 12:00 to 13:00 (720 to 780 minutes)
+      if (outMin >= 720 && outMin <= 780) {
+        isHalfDayLeave = true;
+        earlyMinutes = 0; // It's scheduled half-day leave, not accidental early check-out
+      } else {
+        const diff = normalOutMinutes - outMin;
+        if (diff > rules.earlyCheckoutAllowanceMinutes) {
+          earlyMinutes = diff;
+          isEarlyOut = true;
+        }
       }
     } else {
       // Missing Check-out
@@ -546,7 +555,9 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
 
     // Determine final daily status
     let status: ProcessedDayRecord['status'] = 'ปกติ';
-    if (isHalfDayLate) {
+    if (isHalfDayLeave) {
+      status = 'ลาครึ่งวัน';
+    } else if (isHalfDayLate) {
       status = 'สายครึ่งวัน';
       lateCount++;
     } else if (isLate) {
@@ -565,6 +576,11 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
       lateMinutes,
       earlyMinutes
     });
+
+    // Accumulate leave count: if half-day leave, add 0.5 to leaveCount
+    if (isHalfDayLeave) {
+      leaveCount += 0.5;
+    }
   });
 
   return {
@@ -648,7 +664,7 @@ function showStaffDetail(staff: ProcessedStaffSummary) {
     let badgeClass = 'badge-success';
     if (r.status === 'สาย') badgeClass = 'badge-danger';
     else if (r.status === 'สายครึ่งวัน') badgeClass = 'badge-danger';
-    else if (r.status === 'ออกก่อนเวลา' || r.status === 'ลา/ขาดงาน') badgeClass = 'badge-warning';
+    else if (r.status === 'ออกก่อนเวลา' || r.status === 'ลา/ขาดงาน' || r.status === 'ลาครึ่งวัน') badgeClass = 'badge-warning';
     else if (r.status === 'วันหยุด') badgeClass = 'badge-info';
 
     const tr = document.createElement('tr');
