@@ -411,7 +411,7 @@ interface ProcessedDayRecord {
   date: string;
   checkIn: string;
   checkOut: string;
-  status: 'ปกติ' | 'สาย' | 'สายครึ่งวัน' | 'ลาครึ่งวัน' | 'ออกก่อนเวลา' | 'วันหยุด' | 'ลา/ขาดงาน';
+  status: 'ปกติ' | 'สาย' | 'สายครึ่งวัน' | 'ลาครึ่งวันเช้า' | 'ลาครึ่งวันบ่าย' | 'ออกก่อนเวลา' | 'วันหยุด' | 'ลา/ขาดงาน';
   lateMinutes: number;
   earlyMinutes: number;
 }
@@ -532,14 +532,29 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
     }
 
     // Calculate Early Checkout
-    let isHalfDayLeave = false;
-    if (checkOut) {
+    let isHalfDayAfternoonLeave = false;
+    let isHalfDayMorningLeave = false;
+
+    // Detect "ลาครึ่งวันเช้า" (Morning Leave)
+    // If checkIn is empty in the morning, but has a scan starting around midday (e.g. 12:00 - 13:30) and checkOut is normal.
+    // If we only have 1 scan and it's near midday, it might be the check-in for the afternoon.
+    // Let's refine check-in / check-out assignments if it's a half-day morning leave
+    if (scans.length >= 1) {
+      const firstScanMin = timeToMinutes(scans[0]);
+      // If first scan is between 12:00 and 13:30 (720 to 810 mins), it's likely a check-in for the afternoon (Morning Leave)
+      if (firstScanMin >= 720 && firstScanMin <= 810) {
+        checkIn = scans[0];
+        checkOut = scans[scans.length - 1] !== checkIn ? scans[scans.length - 1] : '';
+        isHalfDayMorningLeave = true;
+      }
+    }
+
+    if (checkOut && !isHalfDayMorningLeave) {
       const outMin = timeToMinutes(checkOut);
       
       // If check-out is around midday break (e.g. 12:00 - 13:00) and check-in was normal, it counts as "Half-Day Leave (afternoon)"
-      // Noon break is 12:00 to 13:00 (720 to 780 minutes)
       if (outMin >= 720 && outMin <= 780) {
-        isHalfDayLeave = true;
+        isHalfDayAfternoonLeave = true;
         earlyMinutes = 0; // It's scheduled half-day leave, not accidental early check-out
       } else {
         const diff = normalOutMinutes - outMin;
@@ -548,15 +563,34 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
           isEarlyOut = true;
         }
       }
-    } else {
+    } else if (!checkOut && !isHalfDayMorningLeave) {
       // Missing Check-out
       isEarlyOut = true;
     }
 
+    // If it's half day morning leave, checkIn is around noon. Don't mark it as late
+    if (isHalfDayMorningLeave && checkIn) {
+      isLate = false;
+      lateMinutes = 0;
+      // Calculate early checkout if checkOut exists
+      if (checkOut) {
+        const outMin = timeToMinutes(checkOut);
+        const diff = normalOutMinutes - outMin;
+        if (diff > rules.earlyCheckoutAllowanceMinutes) {
+          earlyMinutes = diff;
+          isEarlyOut = true;
+        }
+      } else {
+        isEarlyOut = true; // Missing checkout
+      }
+    }
+
     // Determine final daily status
     let status: ProcessedDayRecord['status'] = 'ปกติ';
-    if (isHalfDayLeave) {
-      status = 'ลาครึ่งวัน';
+    if (isHalfDayAfternoonLeave) {
+      status = 'ลาครึ่งวันบ่าย';
+    } else if (isHalfDayMorningLeave) {
+      status = 'ลาครึ่งวันเช้า';
     } else if (isHalfDayLate) {
       status = 'สายครึ่งวัน';
       lateCount++;
@@ -578,7 +612,7 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
     });
 
     // Accumulate leave count: if half-day leave, add 0.5 to leaveCount
-    if (isHalfDayLeave) {
+    if (isHalfDayAfternoonLeave || isHalfDayMorningLeave) {
       leaveCount += 0.5;
     }
   });
@@ -664,7 +698,7 @@ function showStaffDetail(staff: ProcessedStaffSummary) {
     let badgeClass = 'badge-success';
     if (r.status === 'สาย') badgeClass = 'badge-danger';
     else if (r.status === 'สายครึ่งวัน') badgeClass = 'badge-danger';
-    else if (r.status === 'ออกก่อนเวลา' || r.status === 'ลา/ขาดงาน' || r.status === 'ลาครึ่งวัน') badgeClass = 'badge-warning';
+    else if (r.status === 'ออกก่อนเวลา' || r.status === 'ลา/ขาดงาน' || r.status === 'ลาครึ่งวันเช้า' || r.status === 'ลาครึ่งวันบ่าย') badgeClass = 'badge-warning';
     else if (r.status === 'วันหยุด') badgeClass = 'badge-info';
 
     const tr = document.createElement('tr');
