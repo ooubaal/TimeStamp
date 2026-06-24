@@ -1166,7 +1166,8 @@ function handlePrintReports() {
     const dayName = days[dateObj.getDay()];
     const parts = dateStr.split('-');
     if (parts.length === 3) {
-      return `${dayName} ${parts[2]}/${parts[1]}/${parseInt(parts[0], 10) + 543}`;
+      const thaiYear = String(parseInt(parts[0], 10) + 543).slice(-2);
+      return `${dayName} ${parts[2]}/${parts[1]}/${thaiYear}`;
     }
     return dateStr;
   };
@@ -1175,55 +1176,77 @@ function handlePrintReports() {
     const page = document.createElement('div');
     page.className = 'print-page';
 
-    let tableRowsHTML = '';
-    s.records.forEach(r => {
-      let statusStyle = '';
-      if (r.status === 'สาย' || r.status === 'สายครึ่งวัน' || r.status === 'ไม่สแกนออก' || r.status === 'ไม่สแกนเข้า' || r.status === 'ลา/ขาดงาน') {
-        statusStyle = 'font-weight: bold; color: black;';
-      }
-      tableRowsHTML += `
-        <tr>
-          <td>${formatDateWithThaiDayPrint(r.date)}</td>
-          <td>${r.checkIn || '-'}</td>
-          <td>${r.checkOut || '-'}</td>
-          <td style="${statusStyle}">${r.status}</td>
-          <td style="width: 25%;"></td>
-        </tr>
+    // Split records into 2 halves for side-by-side view
+    const half = Math.ceil(s.records.length / 2);
+    const leftRecords = s.records.slice(0, half);
+    const rightRecords = s.records.slice(half);
+
+    const renderTableColumn = (records: typeof s.records) => {
+      let rowsHTML = '';
+      records.forEach(r => {
+        let statusStyle = '';
+        if (r.status === 'สาย' || r.status === 'สายครึ่งวัน' || r.status === 'ไม่สแกนออก' || r.status === 'ไม่สแกนเข้า' || r.status === 'ลา/ขาดงาน') {
+          statusStyle = 'font-weight: bold; color: black;';
+        }
+        rowsHTML += `
+          <tr>
+            <td style="padding: 3px 4px !important; font-size: 11px;">${formatDateWithThaiDayPrint(r.date)}</td>
+            <td style="padding: 3px 4px !important; font-size: 11px;">${r.checkIn || '-'}</td>
+            <td style="padding: 3px 4px !important; font-size: 11px;">${r.checkOut || '-'}</td>
+            <td style="${statusStyle} padding: 3px 4px !important; font-size: 11px;">${r.status}</td>
+            <td style="padding: 3px 4px !important; font-size: 11px;"></td>
+          </tr>
+        `;
+      });
+
+      return `
+        <table class="print-table" style="width: 100%; margin-bottom: 0; font-size: 11px; border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th style="padding: 3px 4px !important; font-size: 11px; width: 28%;">วันที่</th>
+              <th style="padding: 3px 4px !important; font-size: 11px; width: 17%;">สแกนเข้า</th>
+              <th style="padding: 3px 4px !important; font-size: 11px; width: 17%;">สแกนออก</th>
+              <th style="padding: 3px 4px !important; font-size: 11px; width: 18%;">สถานะ</th>
+              <th style="padding: 3px 4px !important; font-size: 11px; width: 20%;">หมายเหตุ</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHTML}
+          </tbody>
+        </table>
       `;
-    });
+    };
+
+    const sideBySideTablesHTML = `
+      <div style="display: flex; gap: 12px; margin-bottom: 10px; align-items: start;">
+        <div style="flex: 1;">
+          ${renderTableColumn(leftRecords)}
+        </div>
+        <div style="flex: 1;">
+          ${renderTableColumn(rightRecords)}
+        </div>
+      </div>
+    `;
 
     const lateDates = s.records
       .filter(r => r.status === 'สาย' || r.status === 'สายครึ่งวัน')
       .map(r => getShortDate(r.date));
 
     page.innerHTML = `
-      <div class="print-header">
-        <h1>ใบตรวจสอบเวลาปฏิบัติงานและวันลาเจ้าหน้าที่</h1>
-        <div style="font-size: 14px; font-weight: bold;">ประจำเดือน ${periodText}</div>
+      <div class="print-header" style="margin-bottom: 10px; padding-bottom: 5px;">
+        <h1 style="font-size: 16px; margin: 0 0 3px 0;">ใบตรวจสอบเวลาปฏิบัติงานและวันลาเจ้าหน้าที่</h1>
+        <div style="font-size: 12px; font-weight: bold;">ประจำเดือน ${periodText}</div>
       </div>
       
-      <div class="print-info-grid">
+      <div class="print-info-grid" style="margin-bottom: 10px; font-size: 12px; grid-template-columns: repeat(4, 1fr);">
         <div><strong>ชื่อ-นามสกุล:</strong> ${s.name}</div>
         <div><strong>รหัสประจำตัว:</strong> ${s.id}</div>
         <div><strong>ตำแหน่ง:</strong> ${s.position}</div>
         <div><strong>ฝ่าย/หน่วยงาน:</strong> ${s.department}</div>
       </div>
 
-      <h3 style="font-size: 13px; font-weight: bold; margin-bottom: 5px; text-align: left;">1. ประวัติเวลาปฏิบัติงานจริงประจำเดือน</h3>
-      <table class="print-table">
-        <thead>
-          <tr>
-            <th>วันที่</th>
-            <th>สแกนเข้า</th>
-            <th>สแกนออก</th>
-            <th>สถานะ</th>
-            <th style="width: 25%;">หมายเหตุ</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${tableRowsHTML}
-        </tbody>
-      </table>
+      <h3 style="font-size: 12px; font-weight: bold; margin-top: 0; margin-bottom: 5px; text-align: left;">1. ประวัติเวลาปฏิบัติงานจริงประจำเดือน</h3>
+      ${sideBySideTablesHTML}
 
       <div class="print-verification-title">2. ตารางสรุปเพื่อลงข้อมูลยืนยันจากเจ้าหน้าที่</div>
       <table class="print-verification-table">
