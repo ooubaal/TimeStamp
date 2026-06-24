@@ -536,12 +536,12 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
     let isHalfDayMorningLeave = false;
 
     // Detect "ลาครึ่งวันเช้า" (Morning Leave)
-    // If checkIn is empty in the morning, but has a scan starting around midday (e.g. 11:00 - 13:30) and checkOut is normal.
-    // 11:00 in minutes is 660. 13:30 is 810.
+    // If checkIn is empty in the morning, but has a scan starting around midday (e.g. 10:30 - 13:00) and checkOut is normal.
+    // 10:30 in minutes is 10 * 60 + 30 = 630. 13:00 is 780.
     if (scans.length >= 1) {
       const firstScanMin = timeToMinutes(scans[0]);
-      // If first scan is between 11:00 and 13:30 (660 to 810 mins), it's likely a check-in for the afternoon (Morning Leave)
-      if (firstScanMin >= 660 && firstScanMin <= 810) {
+      // If first scan is between 10:30 and 13:00 (630 to 780 mins), it's likely a check-in for the afternoon (Morning Leave)
+      if (firstScanMin >= 630 && firstScanMin <= 780) {
         checkIn = scans[0];
         checkOut = scans[scans.length - 1] !== checkIn ? scans[scans.length - 1] : '';
         isHalfDayMorningLeave = true;
