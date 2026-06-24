@@ -1163,8 +1163,7 @@ function handlePrintReports() {
           <td>${r.checkIn || '-'}</td>
           <td>${r.checkOut || '-'}</td>
           <td style="${statusStyle}">${r.status}</td>
-          <td>${r.lateMinutes > 0 ? r.lateMinutes + ' นาที' : '-'}</td>
-          <td>${r.earlyMinutes > 0 ? r.earlyMinutes + ' นาที' : '-'}</td>
+          <td style="width: 25%;"></td>
         </tr>
       `;
     });
@@ -1194,8 +1193,7 @@ function handlePrintReports() {
             <th>สแกนเข้า</th>
             <th>สแกนออก</th>
             <th>สถานะ</th>
-            <th>สาย</th>
-            <th>ออกก่อน</th>
+            <th style="width: 25%;">หมายเหตุ</th>
           </tr>
         </thead>
         <tbody>
