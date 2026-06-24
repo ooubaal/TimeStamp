@@ -90,8 +90,7 @@
           <td>${e.checkIn||`-`}</td>
           <td>${e.checkOut||`-`}</td>
           <td style="${t}">${e.status}</td>
-          <td>${e.lateMinutes>0?e.lateMinutes+` นาที`:`-`}</td>
-          <td>${e.earlyMinutes>0?e.earlyMinutes+` นาที`:`-`}</td>
+          <td style="width: 25%;"></td>
         </tr>
       `});let o=r.records.filter(e=>e.status===`สาย`||e.status===`สายครึ่งวัน`).map(e=>t(e.date));i.innerHTML=`
       <div class="print-header">
@@ -114,8 +113,7 @@
             <th>สแกนเข้า</th>
             <th>สแกนออก</th>
             <th>สถานะ</th>
-            <th>สาย</th>
-            <th>ออกก่อน</th>
+            <th style="width: 25%;">หมายเหตุ</th>
           </tr>
         </thead>
         <tbody>
