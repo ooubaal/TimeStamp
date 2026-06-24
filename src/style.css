@@ -534,3 +534,107 @@ input:focus {
   margin: 2rem auto 0;
   width: 100%;
 }
+
+/* Printing styles */
+#print-container {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #print-container, #print-container * {
+    visibility: visible;
+  }
+  #print-container {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: white !important;
+    color: black !important;
+  }
+  .print-page {
+    page-break-after: always;
+    break-after: page;
+    padding: 1.5cm;
+    box-sizing: border-box;
+    width: 100%;
+    color: black !important;
+    background: white !important;
+    font-family: 'Sarabun', 'Inter', sans-serif !important;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .print-header {
+    text-align: center;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #000;
+    padding-bottom: 10px;
+  }
+  .print-header h1 {
+    font-size: 18px;
+    margin: 0 0 5px 0;
+    font-weight: bold;
+    color: black !important;
+  }
+  .print-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    text-align: left;
+  }
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    font-size: 12px;
+  }
+  .print-table th, .print-table td {
+    border: 1px solid #000 !important;
+    padding: 6px 8px;
+    text-align: center;
+    color: black !important;
+  }
+  .print-table th {
+    background-color: #f2f2f2 !important;
+    font-weight: bold;
+  }
+  .print-verification-title {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    text-align: left;
+  }
+  .print-verification-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 25px;
+  }
+  .print-verification-table th, .print-verification-table td {
+    border: 1px solid #000 !important;
+    padding: 8px;
+    font-size: 13px;
+    color: black !important;
+  }
+  .print-verification-table th {
+    background-color: #f2f2f2 !important;
+    font-weight: bold;
+    text-align: center;
+  }
+  .print-verification-table td {
+    text-align: left;
+  }
+  .print-signatures {
+    margin-top: 30px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    text-align: center;
+    font-size: 13px;
+  }
+}

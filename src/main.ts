@@ -83,9 +83,11 @@ const filterStartDate = document.getElementById('filter-start-date') as HTMLInpu
 const filterEndDate = document.getElementById('filter-end-date') as HTMLInputElement;
 const searchStaff = document.getElementById('search-staff') as HTMLInputElement;
 const btnExportExcel = document.getElementById('btn-export-excel') as HTMLButtonElement;
+const btnPrintReports = document.getElementById('btn-print-reports') as HTMLButtonElement;
 const filterModeSelect = document.getElementById('filter-mode') as HTMLSelectElement;
 const filterMonthSelect = document.getElementById('filter-month') as HTMLSelectElement;
 const filterYearSelect = document.getElementById('filter-year') as HTMLSelectElement;
+const printContainer = document.getElementById('print-container') as HTMLElement;
 
 const summaryTableBody = document.getElementById('summary-table-body') as HTMLElement;
 
@@ -362,6 +364,11 @@ function init() {
 
   // Export CSV Summary
   btnExportExcel.addEventListener('click', handleCSVExport);
+
+  // Print Reports
+  if (btnPrintReports) {
+    btnPrintReports.addEventListener('click', handlePrintReports);
+  }
 
   // Restore employee data from local storage if exists
   applyEmployeesFromState();
@@ -1033,6 +1040,164 @@ function handleCSVExport() {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+// Print Report Generation
+function handlePrintReports() {
+  if (currentProcessedSummaries.length === 0) {
+    alert('ไม่มีข้อมูลสำหรับพิมพ์รายงาน');
+    return;
+  }
+
+  // Get active month and year text for header
+  let periodText = '';
+  if (filterModeSelect.value === 'monthly') {
+    const monthsThai = [
+      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ];
+    const monthIndex = parseInt(filterMonthSelect.value, 10) - 1;
+    const yearThai = parseInt(filterYearSelect.value, 10) + 543; // Convert to Buddhist Era
+    periodText = `${monthsThai[monthIndex]} พ.ศ. ${yearThai}`;
+  } else {
+    const startParts = filterStartDate.value.split('-');
+    const endParts = filterEndDate.value.split('-');
+    const formatPart = (p: string[]) => p.length === 3 ? `${p[2]}/${p[1]}/${parseInt(p[0], 10) + 543}` : '';
+    periodText = `ระหว่างวันที่ ${formatPart(startParts)} ถึง ${formatPart(endParts)}`;
+  }
+
+  printContainer.innerHTML = '';
+
+  const getShortDate = (dateStr: string) => {
+    const p = dateStr.split('-');
+    return p.length === 3 ? `${p[2]}/${p[1]}` : dateStr;
+  };
+
+  const formatDateWithThaiDayPrint = (dateStr: string): string => {
+    const days = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+    const dateObj = new Date(dateStr);
+    const dayName = days[dateObj.getDay()];
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${dayName} ${parts[2]}/${parts[1]}/${parseInt(parts[0], 10) + 543}`;
+    }
+    return dateStr;
+  };
+
+  currentProcessedSummaries.forEach(s => {
+    const page = document.createElement('div');
+    page.className = 'print-page';
+
+    let tableRowsHTML = '';
+    s.records.forEach(r => {
+      let statusStyle = '';
+      if (r.status === 'สาย' || r.status === 'สายครึ่งวัน' || r.status === 'ไม่สแกนออก' || r.status === 'ไม่สแกนเข้า' || r.status === 'ลา/ขาดงาน') {
+        statusStyle = 'font-weight: bold; color: black;';
+      }
+      tableRowsHTML += `
+        <tr>
+          <td>${formatDateWithThaiDayPrint(r.date)}</td>
+          <td>${r.checkIn || '-'}</td>
+          <td>${r.checkOut || '-'}</td>
+          <td style="${statusStyle}">${r.status}</td>
+          <td>${r.lateMinutes > 0 ? r.lateMinutes + ' นาที' : '-'}</td>
+          <td>${r.earlyMinutes > 0 ? r.earlyMinutes + ' นาที' : '-'}</td>
+        </tr>
+      `;
+    });
+
+    const lateDates = s.records
+      .filter(r => r.status === 'สาย' || r.status === 'สายครึ่งวัน')
+      .map(r => getShortDate(r.date));
+
+    page.innerHTML = `
+      <div class="print-header">
+        <h1>ใบตรวจสอบเวลาปฏิบัติงานและวันลาเจ้าหน้าที่</h1>
+        <div style="font-size: 14px; font-weight: bold;">ประจำเดือน ${periodText}</div>
+      </div>
+      
+      <div class="print-info-grid">
+        <div><strong>ชื่อ-นามสกุล:</strong> ${s.name}</div>
+        <div><strong>รหัสประจำตัว:</strong> ${s.id}</div>
+        <div><strong>ตำแหน่ง:</strong> ${s.position}</div>
+        <div><strong>ฝ่าย/หน่วยงาน:</strong> ${s.department}</div>
+      </div>
+
+      <h3 style="font-size: 13px; font-weight: bold; margin-bottom: 5px; text-align: left;">1. ประวัติเวลาปฏิบัติงานจริงประจำเดือน</h3>
+      <table class="print-table">
+        <thead>
+          <tr>
+            <th>วันที่</th>
+            <th>สแกนเข้า</th>
+            <th>สแกนออก</th>
+            <th>สถานะ</th>
+            <th>สาย</th>
+            <th>ออกก่อน</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRowsHTML}
+        </tbody>
+      </table>
+
+      <div class="print-verification-title">2. ตารางสรุปเพื่อลงข้อมูลยืนยันจากเจ้าหน้าที่</div>
+      <table class="print-verification-table">
+        <thead>
+          <tr>
+            <th style="width: 25%;">ประเภทวันลา/สาย</th>
+            <th style="width: 55%;">วันที่</th>
+            <th style="width: 20%;">รวม (วัน/ครั้ง)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-weight: bold;">พักร้อน</td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td style="font-weight: bold;">ลากิจ</td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td style="font-weight: bold;">ลาป่วย</td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td style="font-weight: bold;">สาย</td>
+            <td style="font-size: 11px;">${lateDates.length > 0 ? 'ประมวลผลสายวันที่: ' + lateDates.join(', ') : ''}</td>
+            <td style="text-align: center; font-weight: bold;">${s.lateCount > 0 ? s.lateCount + ' ครั้ง' : '-'}</td>
+          </tr>
+          <tr>
+            <td style="font-weight: bold;">อื่นๆ</td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td style="font-weight: bold;">ผู้ตรวจ</td>
+            <td colspan="2" style="font-style: italic; color: #555;">(ลงชื่อเพื่อรับรองความถูกต้องของรายการด้านบน)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="print-signatures">
+        <div>
+          <p style="margin-bottom: 25px;">ลงชื่อ..............................................................เจ้าหน้าที่ผู้ตรวจสอบ</p>
+          <p>วันที่ .......... / .......... / ..........</p>
+        </div>
+        <div>
+          <p style="margin-bottom: 25px;">ลงชื่อ..............................................................หัวหน้างาน/ผู้รับรอง</p>
+          <p>วันที่ .......... / .......... / ..........</p>
+        </div>
+      </div>
+    `;
+
+    printContainer.appendChild(page);
+  });
+
+  window.print();
 }
 
 // Bootstrap
