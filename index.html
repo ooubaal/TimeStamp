@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/TimeStamp/assets/index-DWHtTFF8.js"></script>
+    <script type="module" crossorigin src="/TimeStamp/assets/index-jhlqxeDE.js"></script>
     <link rel="stylesheet" crossorigin href="/TimeStamp/assets/index-B9GutpRX.css">
   </head>
   <body>
@@ -218,21 +218,62 @@
 
         <!-- Filter Period & Controls -->
         <section class="card filter-card">
-          <div class="filter-controls">
+          <div class="filter-controls" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
             <div class="form-group">
+              <label for="filter-mode">โหมดการสรุปเวลา</label>
+              <select id="filter-mode" style="width: 100%; background-color: #0f172a; border: 1px solid var(--border-color); color: white; padding: 0.6rem; border-radius: 6px;">
+                <option value="monthly" selected>📊 สรุปเป็นรายเดือน</option>
+                <option value="range">📅 ระบุช่วงวันที่เอง</option>
+              </select>
+            </div>
+            
+            <!-- Date range inputs (shown when mode is range) -->
+            <div class="form-group filter-date-group" style="display: none;">
               <label for="filter-start-date">ตั้งแต่วันที่</label>
-              <input type="date" id="filter-start-date" />
+              <input type="date" id="filter-start-date" style="width: 100%;" />
             </div>
-            <div class="form-group">
+            <div class="form-group filter-date-group" style="display: none;">
               <label for="filter-end-date">ถึงวันที่</label>
-              <input type="date" id="filter-end-date" />
+              <input type="date" id="filter-end-date" style="width: 100%;" />
             </div>
+
+            <!-- Month/Year select inputs (shown when mode is monthly) -->
+            <div class="form-group filter-monthly-group" style="display: flex; gap: 8px; width: 100%;">
+              <div style="flex: 1.2;">
+                <label for="filter-month">เลือกเดือน</label>
+                <select id="filter-month" style="width: 100%; background-color: #0f172a; border: 1px solid var(--border-color); color: white; padding: 0.6rem; border-radius: 6px;">
+                  <option value="01">มกราคม</option>
+                  <option value="02">กุมภาพันธ์</option>
+                  <option value="03">มีนาคม</option>
+                  <option value="04">เมษายน</option>
+                  <option value="05">พฤษภาคม</option>
+                  <option value="06">มิถุนายน</option>
+                  <option value="07">กรกฎาคม</option>
+                  <option value="08">สิงหาคม</option>
+                  <option value="09">กันยายน</option>
+                  <option value="10" selected>ตุลาคม</option>
+                  <option value="11">พฤศจิกายน</option>
+                  <option value="12">ธันวาคม</option>
+                </select>
+              </div>
+              <div style="flex: 1;">
+                <label for="filter-year">เลือกปี (ค.ศ.)</label>
+                <select id="filter-year" style="width: 100%; background-color: #0f172a; border: 1px solid var(--border-color); color: white; padding: 0.6rem; border-radius: 6px;">
+                  <option value="2022" selected>2022</option>
+                  <option value="2023">2023</option>
+                  <option value="2024">2024</option>
+                  <option value="2025">2025</option>
+                  <option value="2026">2026</option>
+                </select>
+              </div>
+            </div>
+
             <div class="form-group">
               <label for="search-staff">ค้นหาชื่อเจ้าหน้าที่</label>
-              <input type="text" id="search-staff" placeholder="ระบุชื่อหรือรหัส..." />
+              <input type="text" id="search-staff" placeholder="ระบุชื่อหรือรหัส..." style="width: 100%;" />
             </div>
             <div class="form-group action-group">
-              <button class="btn btn-success" id="btn-export-excel">📊 ส่งออกรายงานสรุป (CSV)</button>
+              <button class="btn btn-success" id="btn-export-excel" style="width: 100%;">📊 ส่งออกรายงานสรุป (CSV)</button>
             </div>
           </div>
         </section>
