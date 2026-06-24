@@ -411,7 +411,7 @@ interface ProcessedDayRecord {
   date: string;
   checkIn: string;
   checkOut: string;
-  status: 'ปกติ' | 'สาย' | 'สายครึ่งวัน' | 'ลาครึ่งวันเช้า' | 'ลาครึ่งวันบ่าย' | 'ออกก่อนเวลา' | 'วันหยุด' | 'ลา/ขาดงาน';
+  status: 'ปกติ' | 'สาย' | 'สายครึ่งวัน' | 'ลาครึ่งวันเช้า' | 'ลาครึ่งวันบ่าย' | 'ออกก่อนเวลา' | 'ไม่สแกนออก' | 'ไม่สแกนเข้า' | 'วันหยุด' | 'ลา/ขาดงาน';
   lateMinutes: number;
   earlyMinutes: number;
 }
@@ -587,10 +587,21 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
 
     // Determine final daily status
     let status: ProcessedDayRecord['status'] = 'ปกติ';
+    
+    // Check if scans are missing entirely to set specific warning status
+    let isMissingCheckOut = !checkOut && scans.length === 1;
+    let isMissingCheckIn = !checkIn && scans.length === 1;
+
     if (isHalfDayAfternoonLeave) {
       status = 'ลาครึ่งวันบ่าย';
     } else if (isHalfDayMorningLeave) {
       status = 'ลาครึ่งวันเช้า';
+    } else if (isMissingCheckOut) {
+      status = 'ไม่สแกนออก';
+      earlyMinutes = 0; // Clear early minutes since it was a missing scan, not early checkout
+    } else if (isMissingCheckIn) {
+      status = 'ไม่สแกนเข้า';
+      lateMinutes = 0; // Clear late minutes
     } else if (isHalfDayLate) {
       status = 'สายครึ่งวัน';
       lateCount++;
@@ -698,6 +709,7 @@ function showStaffDetail(staff: ProcessedStaffSummary) {
     let badgeClass = 'badge-success';
     if (r.status === 'สาย') badgeClass = 'badge-danger';
     else if (r.status === 'สายครึ่งวัน') badgeClass = 'badge-danger';
+    else if (r.status === 'ไม่สแกนออก' || r.status === 'ไม่สแกนเข้า') badgeClass = 'badge-danger';
     else if (r.status === 'ออกก่อนเวลา' || r.status === 'ลา/ขาดงาน' || r.status === 'ลาครึ่งวันเช้า' || r.status === 'ลาครึ่งวันบ่าย') badgeClass = 'badge-warning';
     else if (r.status === 'วันหยุด') badgeClass = 'badge-info';
 
