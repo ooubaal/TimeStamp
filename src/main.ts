@@ -855,7 +855,16 @@ function showStaffDetail(staff: ProcessedStaffSummary) {
       else if (r.status === 'วันหยุด' || r.status === 'OT3') badgeClass = 'badge-info';
       else if (r.status === 'OT8') badgeClass = 'badge-success';
 
+      // Check if weekend or holiday
+      const dateObj = new Date(r.date);
+      const dayOfWeek = dateObj.getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const isHoliday = dbState.holidays.some(h => h.date === r.date);
+
       const tr = document.createElement('tr');
+      if (isWeekend || isHoliday) {
+        tr.classList.add('highlight-weekend');
+      }
       tr.innerHTML = `
         <td>${formatDateWithThaiDay(r.date)}</td>
         <td>${r.checkIn}</td>
