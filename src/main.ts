@@ -5,6 +5,7 @@ import {
   exportToJSONFile, 
   importFromJSONFile, 
   sanitizeDB,
+  DEFAULT_HOLIDAYS_2026,
 } from './dbSync';
 import type {
   TimeStampDB,
@@ -77,6 +78,7 @@ const otHolidayHoursInput = document.getElementById('otHolidayHours') as HTMLInp
 const holidayDateInput = document.getElementById('holiday-date') as HTMLInputElement;
 const holidayNameInput = document.getElementById('holiday-name') as HTMLInputElement;
 const btnAddHoliday = document.getElementById('btn-add-holiday') as HTMLButtonElement;
+const btnLoadDefaultHolidays = document.getElementById('btn-load-default-holidays') as HTMLButtonElement;
 const holidayListBody = document.getElementById('holiday-list-body') as HTMLElement;
 
 const filterStartDate = document.getElementById('filter-start-date') as HTMLInputElement;
@@ -378,6 +380,7 @@ function init() {
 
   // Holiday Handlers
   btnAddHoliday.addEventListener('click', handleAddHoliday);
+  btnLoadDefaultHolidays.addEventListener('click', handleLoadDefaultHolidays);
   
   // Filters Event Listeners
   const dateGroups = document.querySelectorAll('.filter-date-group') as NodeListOf<HTMLElement>;
@@ -509,6 +512,27 @@ function handleAddHoliday() {
   holidayNameInput.value = '';
   
   recalculateAndRender();
+}
+
+// Load default 2026 holidays
+function handleLoadDefaultHolidays() {
+  let count = 0;
+  DEFAULT_HOLIDAYS_2026.forEach((dh) => {
+    if (!dbState.holidays.some((h) => h.date === dh.date)) {
+      dbState.holidays.push({ ...dh });
+      count++;
+    }
+  });
+
+  if (count === 0) {
+    alert('มีวันหยุดราชการปี 2026 ทั้งหมดในระบบแล้ว');
+    return;
+  }
+
+  saveAndSync();
+  renderHolidays();
+  recalculateAndRender();
+  alert(`โหลดวันหยุดราชการประจำปี 2026 สำเร็จ (เพิ่มใหม่ ${count} วัน)`);
 }
 
 // JSON Database Export/Import (OneDrive integration support)

@@ -51,10 +51,33 @@ export const DEFAULT_RULES: RuleSettings = {
   otHolidayHours: 8,
 };
 
+export const DEFAULT_HOLIDAYS_2026: Holiday[] = [
+  { date: "2026-01-01", name: "วันขึ้นปีใหม่" },
+  { date: "2026-03-03", name: "วันมาฆบูชา" },
+  { date: "2026-04-06", name: "วันจักรี" },
+  { date: "2026-04-13", name: "วันสงกรานต์" },
+  { date: "2026-04-14", name: "วันสงกรานต์" },
+  { date: "2026-04-15", name: "วันสงกรานต์" },
+  { date: "2026-05-01", name: "วันแรงงานแห่งชาติ" },
+  { date: "2026-05-04", name: "วันฉัตรมงคล" },
+  { date: "2026-05-11", name: "วันพืชมงคล" },
+  { date: "2026-05-31", name: "วันวิสาขบูชา" },
+  { date: "2026-06-03", name: "วันเฉลิมพระชนมพรรษาสมเด็จพระนางเจ้าฯ พระบรมราชินี" },
+  { date: "2026-07-28", name: "วันเฉลิมพระชนมพรรษาพระบาทสมเด็จพระเจ้าอยู่หัว" },
+  { date: "2026-07-29", name: "วันอาสาฬหบูชา" },
+  { date: "2026-07-30", name: "วันเข้าพรรษา" },
+  { date: "2026-08-12", name: "วันแม่แห่งชาติ" },
+  { date: "2026-10-13", name: "วันนวมินทรมหาราช" },
+  { date: "2026-10-23", name: "วันปิยมหาราช" },
+  { date: "2026-12-05", name: "วันคล้ายวันพระบรมราชสมภพ ร.9 / วันพ่อแห่งชาติ" },
+  { date: "2026-12-10", name: "วันรัฐธรรมนูญ" },
+  { date: "2026-12-31", name: "วันสิ้นปี" }
+];
+
 // Initial empty DB structure
 export const initialDB = (): TimeStampDB => ({
   rules: { ...DEFAULT_RULES },
-  holidays: [],
+  holidays: [...DEFAULT_HOLIDAYS_2026],
   employees: [],
   importedFiles: [],
   fileDates: {},
