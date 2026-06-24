@@ -84,42 +84,53 @@
         <td>${e.lateMinutes>0?e.lateMinutes+` นาที`:`-`}</td>
         <td>${e.earlyMinutes>0?e.earlyMinutes+` นาที`:`-`}</td>
       `,Bh.appendChild(o)}),Rh.style.display=`flex`}function lg(){if(og.length===0){alert(`ไม่มีข้อมูลสำหรับส่งออกรายงาน`);return}let e=[[`รหัสพนักงาน`,`ชื่อพนักงาน`,`ตำแหน่งงาน`,`ฝ่าย/หน่วยงาน`,`มาทำงาน (วัน)`,`สาย (ครั้ง)`,`ลา/ขาดงาน (วัน)`,`ออกก่อนเวลา (ครั้ง)`].join(`,`)];og.forEach(t=>{let n=[`"${t.id}"`,`"${t.name}"`,`"${t.position}"`,`"${t.department}"`,t.workedDays,t.lateCount,t.leaveCount,t.earlyOutCount];e.push(n.join(`,`))});let t=`﻿`+e.join(`
-`),n=new Blob([t],{type:`text/csv;charset=utf-8;`}),r=URL.createObjectURL(n),i=document.createElement(`a`);i.href=r,i.download=`รายงานสรุปเวลาทำงาน_${new Date().toISOString().split(`T`)[0]}.csv`,document.body.appendChild(i),i.click(),document.body.removeChild(i),URL.revokeObjectURL(r)}function ug(){if(og.length===0){alert(`ไม่มีข้อมูลสำหรับพิมพ์รายงาน`);return}let e=``;if(Nh.value===`monthly`){let t=[`มกราคม`,`กุมภาพันธ์`,`มีนาคม`,`เมษายน`,`พฤษภาคม`,`มิถุนายน`,`กรกฎาคม`,`สิงหาคม`,`กันยายน`,`ตุลาคม`,`พฤศจิกายน`,`ธันวาคม`],n=parseInt(Ph.value,10)-1,r=parseInt(Fh.value,10)+543;e=`${t[n]} พ.ศ. ${r}`}else{let t=Oh.value.split(`-`),n=kh.value.split(`-`),r=e=>e.length===3?`${e[2]}/${e[1]}/${parseInt(e[0],10)+543}`:``;e=`ระหว่างวันที่ ${r(t)} ถึง ${r(n)}`}Ih.innerHTML=``;let t=e=>{let t=e.split(`-`);return t.length===3?`${t[2]}/${t[1]}`:e},n=e=>{let t=[`อา.`,`จ.`,`อ.`,`พ.`,`พฤ.`,`ศ.`,`ส.`][new Date(e).getDay()],n=e.split(`-`);return n.length===3?`${t} ${n[2]}/${n[1]}/${parseInt(n[0],10)+543}`:e};og.forEach(r=>{let i=document.createElement(`div`);i.className=`print-page`;let a=``;r.records.forEach(e=>{let t=``;(e.status===`สาย`||e.status===`สายครึ่งวัน`||e.status===`ไม่สแกนออก`||e.status===`ไม่สแกนเข้า`||e.status===`ลา/ขาดงาน`)&&(t=`font-weight: bold; color: black;`),a+=`
-        <tr>
-          <td>${n(e.date)}</td>
-          <td>${e.checkIn||`-`}</td>
-          <td>${e.checkOut||`-`}</td>
-          <td style="${t}">${e.status}</td>
-          <td style="width: 25%;"></td>
-        </tr>
-      `});let o=r.records.filter(e=>e.status===`สาย`||e.status===`สายครึ่งวัน`).map(e=>t(e.date));i.innerHTML=`
-      <div class="print-header">
-        <h1>ใบตรวจสอบเวลาปฏิบัติงานและวันลาเจ้าหน้าที่</h1>
-        <div style="font-size: 14px; font-weight: bold;">ประจำเดือน ${e}</div>
+`),n=new Blob([t],{type:`text/csv;charset=utf-8;`}),r=URL.createObjectURL(n),i=document.createElement(`a`);i.href=r,i.download=`รายงานสรุปเวลาทำงาน_${new Date().toISOString().split(`T`)[0]}.csv`,document.body.appendChild(i),i.click(),document.body.removeChild(i),URL.revokeObjectURL(r)}function ug(){if(og.length===0){alert(`ไม่มีข้อมูลสำหรับพิมพ์รายงาน`);return}let e=``;if(Nh.value===`monthly`){let t=[`มกราคม`,`กุมภาพันธ์`,`มีนาคม`,`เมษายน`,`พฤษภาคม`,`มิถุนายน`,`กรกฎาคม`,`สิงหาคม`,`กันยายน`,`ตุลาคม`,`พฤศจิกายน`,`ธันวาคม`],n=parseInt(Ph.value,10)-1,r=parseInt(Fh.value,10)+543;e=`${t[n]} พ.ศ. ${r}`}else{let t=Oh.value.split(`-`),n=kh.value.split(`-`),r=e=>e.length===3?`${e[2]}/${e[1]}/${parseInt(e[0],10)+543}`:``;e=`ระหว่างวันที่ ${r(t)} ถึง ${r(n)}`}Ih.innerHTML=``;let t=e=>{let t=e.split(`-`);return t.length===3?`${t[2]}/${t[1]}`:e},n=e=>{let t=[`อา.`,`จ.`,`อ.`,`พ.`,`พฤ.`,`ศ.`,`ส.`][new Date(e).getDay()],n=e.split(`-`);if(n.length===3){let e=String(parseInt(n[0],10)+543).slice(-2);return`${t} ${n[2]}/${n[1]}/${e}`}return e};og.forEach(r=>{let i=document.createElement(`div`);i.className=`print-page`;let a=Math.ceil(r.records.length/2),o=r.records.slice(0,a),s=r.records.slice(a),c=e=>{let t=``;return e.forEach(e=>{let r=``;(e.status===`สาย`||e.status===`สายครึ่งวัน`||e.status===`ไม่สแกนออก`||e.status===`ไม่สแกนเข้า`||e.status===`ลา/ขาดงาน`)&&(r=`font-weight: bold; color: black;`),t+=`
+          <tr>
+            <td style="padding: 3px 4px !important; font-size: 11px;">${n(e.date)}</td>
+            <td style="padding: 3px 4px !important; font-size: 11px;">${e.checkIn||`-`}</td>
+            <td style="padding: 3px 4px !important; font-size: 11px;">${e.checkOut||`-`}</td>
+            <td style="${r} padding: 3px 4px !important; font-size: 11px;">${e.status}</td>
+            <td style="padding: 3px 4px !important; font-size: 11px;"></td>
+          </tr>
+        `}),`
+        <table class="print-table" style="width: 100%; margin-bottom: 0; font-size: 11px; border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th style="padding: 3px 4px !important; font-size: 11px; width: 28%;">วันที่</th>
+              <th style="padding: 3px 4px !important; font-size: 11px; width: 17%;">สแกนเข้า</th>
+              <th style="padding: 3px 4px !important; font-size: 11px; width: 17%;">สแกนออก</th>
+              <th style="padding: 3px 4px !important; font-size: 11px; width: 18%;">สถานะ</th>
+              <th style="padding: 3px 4px !important; font-size: 11px; width: 20%;">หมายเหตุ</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${t}
+          </tbody>
+        </table>
+      `},l=`
+      <div style="display: flex; gap: 12px; margin-bottom: 10px; align-items: start;">
+        <div style="flex: 1;">
+          ${c(o)}
+        </div>
+        <div style="flex: 1;">
+          ${c(s)}
+        </div>
+      </div>
+    `,u=r.records.filter(e=>e.status===`สาย`||e.status===`สายครึ่งวัน`).map(e=>t(e.date));i.innerHTML=`
+      <div class="print-header" style="margin-bottom: 10px; padding-bottom: 5px;">
+        <h1 style="font-size: 16px; margin: 0 0 3px 0;">ใบตรวจสอบเวลาปฏิบัติงานและวันลาเจ้าหน้าที่</h1>
+        <div style="font-size: 12px; font-weight: bold;">ประจำเดือน ${e}</div>
       </div>
       
-      <div class="print-info-grid">
+      <div class="print-info-grid" style="margin-bottom: 10px; font-size: 12px; grid-template-columns: repeat(4, 1fr);">
         <div><strong>ชื่อ-นามสกุล:</strong> ${r.name}</div>
         <div><strong>รหัสประจำตัว:</strong> ${r.id}</div>
         <div><strong>ตำแหน่ง:</strong> ${r.position}</div>
         <div><strong>ฝ่าย/หน่วยงาน:</strong> ${r.department}</div>
       </div>
 
-      <h3 style="font-size: 13px; font-weight: bold; margin-bottom: 5px; text-align: left;">1. ประวัติเวลาปฏิบัติงานจริงประจำเดือน</h3>
-      <table class="print-table">
-        <thead>
-          <tr>
-            <th>วันที่</th>
-            <th>สแกนเข้า</th>
-            <th>สแกนออก</th>
-            <th>สถานะ</th>
-            <th style="width: 25%;">หมายเหตุ</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${a}
-        </tbody>
-      </table>
+      <h3 style="font-size: 12px; font-weight: bold; margin-top: 0; margin-bottom: 5px; text-align: left;">1. ประวัติเวลาปฏิบัติงานจริงประจำเดือน</h3>
+      ${l}
 
       <div class="print-verification-title">2. ตารางสรุปเพื่อลงข้อมูลยืนยันจากเจ้าหน้าที่</div>
       <table class="print-verification-table">
@@ -148,7 +159,7 @@
           </tr>
           <tr>
             <td style="font-weight: bold;">สาย</td>
-            <td style="font-size: 11px;">${o.length>0?`ประมวลผลสายวันที่: `+o.join(`, `):``}</td>
+            <td style="font-size: 11px;">${u.length>0?`ประมวลผลสายวันที่: `+u.join(`, `):``}</td>
             <td style="text-align: center; font-weight: bold;">${r.lateCount>0?r.lateCount+` ครั้ง`:`-`}</td>
           </tr>
           <tr>
