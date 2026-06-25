@@ -736,15 +736,28 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
           earlyMinutes: 0
         });
       } else {
-        leaveCount++;
-        processedRecords.push({
-          date: dateStr,
-          checkIn: '-',
-          checkOut: '-',
-          status: 'ลา/ขาดงาน',
-          lateMinutes: 0,
-          earlyMinutes: 0
-        });
+        // Only classify as absent if we have imported data for this date in the system
+        const anyEmployeeHasData = parsedEmployees.some(emp => emp.records[dateStr] && emp.records[dateStr].length > 0);
+        if (anyEmployeeHasData) {
+          leaveCount++;
+          processedRecords.push({
+            date: dateStr,
+            checkIn: '-',
+            checkOut: '-',
+            status: 'ลา/ขาดงาน',
+            lateMinutes: 0,
+            earlyMinutes: 0
+          });
+        } else {
+          processedRecords.push({
+            date: dateStr,
+            checkIn: '-',
+            checkOut: '-',
+            status: 'ไม่มีข้อมูล',
+            lateMinutes: 0,
+            earlyMinutes: 0
+          });
+        }
       }
       return;
     }
@@ -1065,6 +1078,7 @@ function showStaffDetail(staff: ProcessedStaffSummary) {
       else if (r.status === 'ไม่สแกนออก' || r.status === 'ไม่สแกนเข้า') badgeClass = 'badge-danger';
       else if (r.status === 'ออกก่อนเวลา' || r.status === 'ลา/ขาดงาน' || r.status === 'ลาครึ่งวันเช้า' || r.status === 'ลาครึ่งวันบ่าย') badgeClass = 'badge-warning';
       else if (r.status === 'วันหยุด' || r.status.startsWith('OT')) badgeClass = 'badge-info';
+      else if (r.status === 'ไม่มีข้อมูล') badgeClass = 'badge-secondary';
 
       // Check if weekend or holiday
       const dateObj = new Date(r.date);
