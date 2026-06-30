@@ -130,8 +130,17 @@ body {
 /* Config Grid */
 .config-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  grid-template-columns: 1fr;
   gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .config-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .rules-card {
+    grid-column: span 2;
+  }
 }
 
 .card {
