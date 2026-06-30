@@ -653,7 +653,7 @@ function clearLoadedData() {
   
   summaryTableBody.innerHTML = `
     <tr>
-      <td colspan="10" class="text-center text-muted">กรุณานำเข้าไฟล์สแกนบัตร (Excel) เพื่อคำนวณและแสดงผลตารางสรุป</td>
+      <td colspan="9" class="text-center text-muted">กรุณานำเข้าไฟล์สแกนบัตร (Excel) เพื่อคำนวณและแสดงผลตารางสรุป</td>
     </tr>
   `;
 }
@@ -1030,7 +1030,7 @@ function recalculateAndRender() {
   if (filtered.length === 0) {
     summaryTableBody.innerHTML = `
       <tr>
-        <td colspan="10" class="text-center text-muted">ไม่พบข้อมูลตามคำค้นหาที่ระบุ</td>
+        <td colspan="9" class="text-center text-muted">ไม่พบข้อมูลตามคำค้นหาที่ระบุ</td>
       </tr>
     `;
     return;
@@ -1066,7 +1066,6 @@ function recalculateAndRender() {
     tr.innerHTML = `
       <td><strong>${s.id}</strong></td>
       <td>${s.name}</td>
-      <td><span class="text-muted">${s.department}</span></td>
       <td><span class="badge badge-info">${s.workedDays} วัน</span></td>
       
       <td>
