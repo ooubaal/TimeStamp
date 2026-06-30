@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/TimeStamp/assets/index-Go5ayz_b.js"></script>
+    <script type="module" crossorigin src="/TimeStamp/assets/index-ChT5zVbp.js"></script>
     <link rel="stylesheet" crossorigin href="/TimeStamp/assets/index-DeqCgYlg.css">
   </head>
   <body>
@@ -270,6 +270,13 @@
             </div>
 
             <div class="form-group">
+              <label for="filter-department">เลือกฝ่าย/หน่วยงาน</label>
+              <select id="filter-department" style="width: 100%; background-color: #0f172a; border: 1px solid var(--border-color); color: white; padding: 0.6rem; border-radius: 6px;">
+                <option value="all" selected>ทั้งหมด</option>
+              </select>
+            </div>
+
+            <div class="form-group">
               <label for="search-staff">ค้นหาชื่อเจ้าหน้าที่</label>
               <input type="text" id="search-staff" placeholder="ระบุชื่อหรือรหัส..." style="width: 100%;" />
             </div>
@@ -296,12 +303,14 @@
                   <th>สาย (ครั้ง)</th>
                   <th>ลา/ขาดงาน (วัน)</th>
                   <th>ออกก่อนเวลา (ครั้ง)</th>
+                  <th>OT3 (วัน)</th>
+                  <th>OT8 (วัน)</th>
                   <th>รายละเอียด / รายวัน</th>
                 </tr>
               </thead>
               <tbody id="summary-table-body">
                 <tr>
-                  <td colspan="8" class="text-center text-muted">กรุณานำเข้าไฟล์สแกนบัตร (Excel) เพื่อคำนวณและแสดงผลตารางสรุป</td>
+                  <td colspan="10" class="text-center text-muted">กรุณานำเข้าไฟล์สแกนบัตร (Excel) เพื่อคำนวณและแสดงผลตารางสรุป</td>
                 </tr>
               </tbody>
             </table>
