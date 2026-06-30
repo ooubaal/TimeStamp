@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/TimeStamp/assets/index-W9qtqBuU.js"></script>
-    <link rel="stylesheet" crossorigin href="/TimeStamp/assets/index-BfTWbDl_.css">
+    <script type="module" crossorigin src="/TimeStamp/assets/index-Go5ayz_b.js"></script>
+    <link rel="stylesheet" crossorigin href="/TimeStamp/assets/index-DeqCgYlg.css">
   </head>
   <body>
     <div id="app">
@@ -109,6 +109,36 @@
             </div>
           </section>
 
+          <!-- Module 2: Holidays -->
+          <section class="card holidays-card">
+            <div class="card-header">
+              <h2>3. การจัดการวันหยุด</h2>
+            </div>
+            <div class="card-body">
+              <div class="holiday-add-form">
+                <input type="date" id="holiday-date" />
+                <input type="text" id="holiday-name" placeholder="ชื่อวันหยุด (เช่น วันสงกรานต์)" />
+                <button class="btn btn-primary" id="btn-add-holiday">เพิ่มวันหยุด</button>
+                <button class="btn btn-secondary" id="btn-load-default-holidays">📅 โหลดวันหยุดราชการปี 2026</button>
+              </div>
+              
+              <div class="holiday-list-container">
+                <table class="holiday-table">
+                  <thead>
+                    <tr>
+                      <th>วันที่</th>
+                      <th>ชื่อวันหยุด</th>
+                      <th>ลบ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="holiday-list-body">
+                    <!-- Dynamic -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
           <!-- Module 4: Rules -->
           <section class="card rules-card">
             <div class="card-header">
@@ -183,36 +213,6 @@
                 
                 <button type="submit" class="btn btn-primary btn-block">บันทึกเงื่อนไขเกณฑ์เวลา</button>
               </form>
-            </div>
-          </section>
-
-          <!-- Module 2: Holidays -->
-          <section class="card holidays-card">
-            <div class="card-header">
-              <h2>3. การจัดการวันหยุด</h2>
-            </div>
-            <div class="card-body">
-              <div class="holiday-add-form">
-                <input type="date" id="holiday-date" />
-                <input type="text" id="holiday-name" placeholder="ชื่อวันหยุด (เช่น วันสงกรานต์)" />
-                <button class="btn btn-primary" id="btn-add-holiday">เพิ่มวันหยุด</button>
-                <button class="btn btn-secondary" id="btn-load-default-holidays">📅 โหลดวันหยุดราชการปี 2026</button>
-              </div>
-              
-              <div class="holiday-list-container">
-                <table class="holiday-table">
-                  <thead>
-                    <tr>
-                      <th>วันที่</th>
-                      <th>ชื่อวันหยุด</th>
-                      <th>ลบ</th>
-                    </tr>
-                  </thead>
-                  <tbody id="holiday-list-body">
-                    <!-- Dynamic -->
-                  </tbody>
-                </table>
-              </div>
             </div>
           </section>
         </div>
