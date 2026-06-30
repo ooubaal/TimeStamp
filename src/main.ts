@@ -89,6 +89,7 @@ const btnPrintReports = document.getElementById('btn-print-reports') as HTMLButt
 const filterModeSelect = document.getElementById('filter-mode') as HTMLSelectElement;
 const filterMonthSelect = document.getElementById('filter-month') as HTMLSelectElement;
 const filterYearSelect = document.getElementById('filter-year') as HTMLSelectElement;
+const filterDepartmentSelect = document.getElementById('filter-department') as HTMLSelectElement;
 const printContainer = document.getElementById('print-container') as HTMLElement;
 
 const summaryTableBody = document.getElementById('summary-table-body') as HTMLElement;
@@ -400,6 +401,7 @@ function init() {
   });
   filterMonthSelect.addEventListener('change', recalculateAndRender);
   filterYearSelect.addEventListener('change', recalculateAndRender);
+  filterDepartmentSelect.addEventListener('change', recalculateAndRender);
 
   filterStartDate.addEventListener('change', recalculateAndRender);
   filterEndDate.addEventListener('change', recalculateAndRender);
@@ -651,7 +653,7 @@ function clearLoadedData() {
   
   summaryTableBody.innerHTML = `
     <tr>
-      <td colspan="8" class="text-center text-muted">กรุณานำเข้าไฟล์สแกนบัตร (Excel) เพื่อคำนวณและแสดงผลตารางสรุป</td>
+      <td colspan="10" class="text-center text-muted">กรุณานำเข้าไฟล์สแกนบัตร (Excel) เพื่อคำนวณและแสดงผลตารางสรุป</td>
     </tr>
   `;
 }
@@ -666,6 +668,8 @@ interface ProcessedStaffSummary {
   lateCount: number;
   leaveCount: number;
   earlyOutCount: number;
+  ot3Count: number;
+  ot8Count: number;
   records: ProcessedDayRecord[];
 }
 
@@ -710,6 +714,8 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
   let lateCount = 0;
   let leaveCount = 0;
   let earlyOutCount = 0;
+  let ot3Count = 0;
+  let ot8Count = 0;
 
   const normalInMinutes = timeToMinutes(rules.morningWorkStart);
   const normalOutMinutes = timeToMinutes(rules.afternoonWorkEnd);
@@ -912,8 +918,10 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
       earlyOutCount++;
     } else if (isOT3) {
       status = 'OT3';
+      ot3Count++;
     } else if (isOT8) {
       status = 'OT8';
+      ot8Count++;
     }
 
     processedRecords.push({
@@ -940,6 +948,8 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
     lateCount,
     leaveCount,
     earlyOutCount,
+    ot3Count,
+    ot8Count,
     records: processedRecords
   };
 }
@@ -947,8 +957,44 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
 // Main table renderer
 let currentProcessedSummaries: ProcessedStaffSummary[] = [];
 
+function populateDepartmentFilter() {
+  const departments = new Set<string>();
+  parsedEmployees.forEach(e => {
+    if (e.department) {
+      departments.add(e.department.trim());
+    }
+  });
+
+  const sortedDepts = Array.from(departments).sort();
+  const currentOptions = Array.from(filterDepartmentSelect.options)
+    .map(opt => opt.value)
+    .filter(val => val !== 'all');
+    
+  const isSame = currentOptions.length === sortedDepts.length && 
+    currentOptions.every((val, index) => val === sortedDepts[index]);
+    
+  if (isSame) return;
+
+  const selectedValue = filterDepartmentSelect.value || 'all';
+  filterDepartmentSelect.innerHTML = '<option value="all">ทั้งหมด</option>';
+  sortedDepts.forEach(dept => {
+    const opt = document.createElement('option');
+    opt.value = dept;
+    opt.textContent = dept;
+    filterDepartmentSelect.appendChild(opt);
+  });
+
+  if (departments.has(selectedValue)) {
+    filterDepartmentSelect.value = selectedValue;
+  } else {
+    filterDepartmentSelect.value = 'all';
+  }
+}
+
 function recalculateAndRender() {
   if (parsedEmployees.length === 0) return;
+
+  populateDepartmentFilter();
 
   let startVal = filterStartDate.value;
   let endVal = filterEndDate.value;
@@ -962,24 +1008,29 @@ function recalculateAndRender() {
   }
 
   const searchVal = searchStaff.value.trim().toLowerCase();
+  const deptVal = filterDepartmentSelect.value;
 
   // Run business calculations for all employees
   currentProcessedSummaries = parsedEmployees.map(emp => 
     calculateStaffRecords(emp, dbState.rules, dbState.holidays, startVal, endVal)
   );
 
-  // Filter based on search input
-  const filtered = currentProcessedSummaries.filter(summary => 
+  // Filter based on search input and department select
+  let filtered = currentProcessedSummaries.filter(summary => 
     summary.name.toLowerCase().includes(searchVal) || 
     summary.id.toLowerCase().includes(searchVal)
   );
+
+  if (deptVal && deptVal !== 'all') {
+    filtered = filtered.filter(summary => summary.department === deptVal);
+  }
 
   summaryTableBody.innerHTML = '';
   
   if (filtered.length === 0) {
     summaryTableBody.innerHTML = `
       <tr>
-        <td colspan="8" class="text-center text-muted">ไม่พบข้อมูลตามคำค้นหาที่ระบุ</td>
+        <td colspan="10" class="text-center text-muted">ไม่พบข้อมูลตามคำค้นหาที่ระบุ</td>
       </tr>
     `;
     return;
@@ -1031,6 +1082,14 @@ function recalculateAndRender() {
       <td>
         <span class="badge ${s.earlyOutCount > 0 ? 'badge-warning' : 'badge-success'}">${s.earlyOutCount} ครั้ง</span>
         ${earlyDates.length > 0 ? `<div style="font-size: 0.75rem; opacity: 0.8; margin-top: 4px; max-width: 140px; word-wrap: break-word; color: #fbbf24;">${earlyDates.join(', ')}</div>` : ''}
+      </td>
+      
+      <td>
+        <span class="badge ${s.ot3Count > 0 ? 'badge-info' : 'badge-success'}">${s.ot3Count} วัน</span>
+      </td>
+
+      <td>
+        <span class="badge ${s.ot8Count > 0 ? 'badge-info' : 'badge-success'}">${s.ot8Count} วัน</span>
       </td>
       
       <td><button class="btn btn-secondary btn-sm btn-view-detail" data-id="${s.id}">🔍 รายละเอียด</button></td>
