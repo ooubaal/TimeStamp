@@ -103,6 +103,16 @@ const modalTitle = document.getElementById('modal-title') as HTMLElement;
 const detailTableBody = document.getElementById('detail-table-body') as HTMLElement;
 const btnCloseModal = document.getElementById('btn-close-modal') as HTMLButtonElement;
 
+interface SortState {
+  column: string | null;
+  direction: 'asc' | 'desc';
+}
+
+let currentSort: SortState = {
+  column: null,
+  direction: 'asc'
+};
+
 
 function mergeEmployeeRecords(existing: EmployeeData[], newEmployees: EmployeeData[]): EmployeeData[] {
   const mergedMap = new Map<string, EmployeeData>();
@@ -413,6 +423,20 @@ function init() {
     const isChecked = selectAllPrint.checked;
     document.querySelectorAll('.select-emp-print').forEach((cb) => {
       (cb as HTMLInputElement).checked = isChecked;
+    });
+  });
+
+  // Attach Sort Handlers to Headers
+  document.querySelectorAll('.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.getAttribute('data-sort');
+      if (currentSort.column === col) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort.column = col;
+        currentSort.direction = 'asc';
+      }
+      recalculateAndRender();
     });
   });
 
@@ -1044,6 +1068,62 @@ function recalculateAndRender() {
   if (deptVal && deptVal !== 'all') {
     filtered = filtered.filter(summary => summary.department === deptVal);
   }
+
+  // Sort based on currentSort state
+  if (currentSort.column) {
+    const col = currentSort.column;
+    const dir = currentSort.direction === 'asc' ? 1 : -1;
+    filtered.sort((a, b) => {
+      let valA: string | number = '';
+      let valB: string | number = '';
+
+      if (col === 'id') {
+        valA = a.id;
+        valB = b.id;
+      } else if (col === 'name') {
+        valA = a.name;
+        valB = b.name;
+      } else if (col === 'workedDays') {
+        valA = a.workedDays;
+        valB = b.workedDays;
+      } else if (col === 'lateCount') {
+        valA = a.lateCount + a.holidayLateCount;
+        valB = b.lateCount + b.holidayLateCount;
+      } else if (col === 'leaveCount') {
+        valA = a.leaveCount;
+        valB = b.leaveCount;
+      } else if (col === 'earlyOutCount') {
+        valA = a.earlyOutCount;
+        valB = b.earlyOutCount;
+      } else if (col === 'ot3Count') {
+        valA = a.ot3Count;
+        valB = b.ot3Count;
+      } else if (col === 'ot8Count') {
+        valA = a.ot8Count;
+        valB = b.ot8Count;
+      }
+
+      if (typeof valA === 'string' && typeof valB === 'string') {
+        return valA.localeCompare(valB, 'th') * dir;
+      }
+      return ((valA as number) - (valB as number)) * dir;
+    });
+  }
+
+  // Update header icons
+  document.querySelectorAll('.sortable').forEach(th => {
+    const col = th.getAttribute('data-sort');
+    const iconSpan = th.querySelector('.sort-icon');
+    if (iconSpan) {
+      if (currentSort.column === col) {
+        iconSpan.textContent = currentSort.direction === 'asc' ? '▲' : '▼';
+        (th as HTMLElement).style.color = '#60a5fa'; // Light blue sort highlight
+      } else {
+        iconSpan.textContent = '↕';
+        (th as HTMLElement).style.color = '';
+      }
+    }
+  });
 
   summaryTableBody.innerHTML = '';
   

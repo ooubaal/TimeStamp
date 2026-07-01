@@ -306,14 +306,14 @@
               <thead>
                 <tr>
                   <th style="width: 40px; text-align: center;"><input type="checkbox" id="select-all-print" checked title="เลือกทั้งหมดสำหรับพิมพ์" /></th>
-                  <th>รหัสพนักงาน</th>
-                  <th>ชื่อเจ้าหน้าที่</th>
-                  <th>มาทำงาน (วัน)</th>
-                  <th>สาย (ครั้ง)</th>
-                  <th>ลา/ขาดงาน (วัน)</th>
-                  <th>ออกก่อนเวลา (ครั้ง)</th>
-                  <th>OT3 (วัน)</th>
-                  <th>OT8 (วัน)</th>
+                  <th class="sortable" data-sort="id" style="cursor: pointer; user-select: none;">รหัสพนักงาน <span class="sort-icon" style="font-size: 0.75rem; margin-left: 4px; opacity: 0.5;">↕</span></th>
+                  <th class="sortable" data-sort="name" style="cursor: pointer; user-select: none;">ชื่อเจ้าหน้าที่ <span class="sort-icon" style="font-size: 0.75rem; margin-left: 4px; opacity: 0.5;">↕</span></th>
+                  <th class="sortable" data-sort="workedDays" style="cursor: pointer; user-select: none;">มาทำงาน (วัน) <span class="sort-icon" style="font-size: 0.75rem; margin-left: 4px; opacity: 0.5;">↕</span></th>
+                  <th class="sortable" data-sort="lateCount" style="cursor: pointer; user-select: none;">สาย (ครั้ง) <span class="sort-icon" style="font-size: 0.75rem; margin-left: 4px; opacity: 0.5;">↕</span></th>
+                  <th class="sortable" data-sort="leaveCount" style="cursor: pointer; user-select: none;">ลา/ขาดงาน (วัน) <span class="sort-icon" style="font-size: 0.75rem; margin-left: 4px; opacity: 0.5;">↕</span></th>
+                  <th class="sortable" data-sort="earlyOutCount" style="cursor: pointer; user-select: none;">ออกก่อนเวลา (ครั้ง) <span class="sort-icon" style="font-size: 0.75rem; margin-left: 4px; opacity: 0.5;">↕</span></th>
+                  <th class="sortable" data-sort="ot3Count" style="cursor: pointer; user-select: none;">OT3 (วัน) <span class="sort-icon" style="font-size: 0.75rem; margin-left: 4px; opacity: 0.5;">↕</span></th>
+                  <th class="sortable" data-sort="ot8Count" style="cursor: pointer; user-select: none;">OT8 (วัน) <span class="sort-icon" style="font-size: 0.75rem; margin-left: 4px; opacity: 0.5;">↕</span></th>
                   <th>รายละเอียด / รายวัน</th>
                 </tr>
               </thead>
