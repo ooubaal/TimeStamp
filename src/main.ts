@@ -666,6 +666,7 @@ interface ProcessedStaffSummary {
   position: string;
   workedDays: number;
   lateCount: number;
+  holidayLateCount: number;
   leaveCount: number;
   earlyOutCount: number;
   ot3Count: number;
@@ -712,6 +713,7 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
   const processedRecords: ProcessedDayRecord[] = [];
   let workedDays = 0;
   let lateCount = 0;
+  let holidayLateCount = 0;
   let leaveCount = 0;
   let earlyOutCount = 0;
   let ot3Count = 0;
@@ -909,10 +911,18 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
       lateMinutes = 0; // Clear late minutes
     } else if (isHalfDayLate) {
       status = 'สายครึ่งวัน';
-      lateCount++;
+      if (isHoliday) {
+        holidayLateCount++;
+      } else {
+        lateCount++;
+      }
     } else if (isLate) {
       status = 'สาย';
-      lateCount++;
+      if (isHoliday) {
+        holidayLateCount++;
+      } else {
+        lateCount++;
+      }
     } else if (isEarlyOut) {
       status = 'ออกก่อนเวลา';
       earlyOutCount++;
@@ -946,6 +956,7 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
     position: staff.position,
     workedDays,
     lateCount,
+    holidayLateCount,
     leaveCount,
     earlyOutCount,
     ot3Count,
@@ -1042,10 +1053,30 @@ function recalculateAndRender() {
   };
 
   filtered.forEach(s => {
-    // Extract Late dates
-    const lateDates = s.records
-      .filter(r => r.status === 'สาย' || r.status === 'สายครึ่งวัน')
-      .map(r => getShortDate(r.date));
+    // Extract Late dates (separated into normal workday and holiday/weekend)
+    const normalLateDates: string[] = [];
+    const holidayLateDates: string[] = [];
+    s.records.forEach(r => {
+      if (r.status === 'สาย' || r.status === 'สายครึ่งวัน') {
+        const isWeekend = new Date(r.date).getDay() === 0 || new Date(r.date).getDay() === 6;
+        const isHoliday = dbState.holidays.some(h => h.date === r.date) || isWeekend;
+        const shortD = getShortDate(r.date);
+        if (isHoliday) {
+          holidayLateDates.push(shortD);
+        } else {
+          normalLateDates.push(shortD);
+        }
+      }
+    });
+
+    let lateDatesHTML = '';
+    if (normalLateDates.length > 0 && holidayLateDates.length > 0) {
+      lateDatesHTML = `${normalLateDates.join(', ')} (${holidayLateDates.join(', ')})`;
+    } else if (normalLateDates.length > 0) {
+      lateDatesHTML = normalLateDates.join(', ');
+    } else if (holidayLateDates.length > 0) {
+      lateDatesHTML = `(${holidayLateDates.join(', ')})`;
+    }
       
     // Extract Leave dates
     const leaveDates = s.records
@@ -1069,8 +1100,10 @@ function recalculateAndRender() {
       <td><span class="badge badge-info">${s.workedDays} วัน</span></td>
       
       <td>
-        <span class="badge ${s.lateCount > 0 ? 'badge-danger' : 'badge-success'}">${s.lateCount} ครั้ง</span>
-        ${lateDates.length > 0 ? `<div style="font-size: 0.75rem; opacity: 0.8; margin-top: 4px; max-width: 140px; word-wrap: break-word; color: #f87171;">${lateDates.join(', ')}</div>` : ''}
+        <span class="badge ${s.lateCount > 0 || s.holidayLateCount > 0 ? 'badge-danger' : 'badge-success'}">
+          ${s.holidayLateCount > 0 ? `${s.lateCount}(+${s.holidayLateCount}) ครั้ง` : `${s.lateCount} ครั้ง`}
+        </span>
+        ${lateDatesHTML ? `<div style="font-size: 0.75rem; opacity: 0.8; margin-top: 4px; max-width: 140px; word-wrap: break-word; color: #f87171;">${lateDatesHTML}</div>` : ''}
       </td>
       
       <td>
@@ -1300,9 +1333,35 @@ function handlePrintReports() {
       </div>
     `;
 
-    const lateDates = s.records
-      .filter(r => r.status === 'สาย' || r.status === 'สายครึ่งวัน')
-      .map(r => getShortDate(r.date));
+    // Differentiate print late dates
+    const normalLateDatesPrint: string[] = [];
+    const holidayLateDatesPrint: string[] = [];
+    s.records.forEach(r => {
+      if (r.status === 'สาย' || r.status === 'สายครึ่งวัน') {
+        const isWeekend = new Date(r.date).getDay() === 0 || new Date(r.date).getDay() === 6;
+        const isHoliday = dbState.holidays.some(h => h.date === r.date) || isWeekend;
+        const shortD = getShortDate(r.date);
+        if (isHoliday) {
+          holidayLateDatesPrint.push(shortD);
+        } else {
+          normalLateDatesPrint.push(shortD);
+        }
+      }
+    });
+
+    let printLateDatesText = '';
+    if (normalLateDatesPrint.length > 0 && holidayLateDatesPrint.length > 0) {
+      printLateDatesText = `${normalLateDatesPrint.join(', ')} (${holidayLateDatesPrint.join(', ')})`;
+    } else if (normalLateDatesPrint.length > 0) {
+      printLateDatesText = normalLateDatesPrint.join(', ');
+    } else if (holidayLateDatesPrint.length > 0) {
+      printLateDatesText = `(${holidayLateDatesPrint.join(', ')})`;
+    }
+
+    const totalLateCount = s.lateCount + s.holidayLateCount;
+    const printLateCountText = totalLateCount > 0 
+      ? (s.holidayLateCount > 0 ? `${s.lateCount}(+${s.holidayLateCount}) ครั้ง` : `${s.lateCount} ครั้ง`)
+      : '-';
 
     page.innerHTML = `
       <div class="print-header" style="margin-bottom: 10px; padding-bottom: 5px;">
@@ -1347,8 +1406,8 @@ function handlePrintReports() {
           </tr>
           <tr>
             <td style="font-weight: bold;">สาย</td>
-            <td style="font-size: 11px;">${lateDates.length > 0 ? 'ประมวลผลสายวันที่: ' + lateDates.join(', ') : ''}</td>
-            <td style="text-align: center; font-weight: bold;">${s.lateCount > 0 ? s.lateCount + ' ครั้ง' : '-'}</td>
+            <td style="font-size: 11px;">${printLateDatesText ? 'ประมวลผลสายวันที่: ' + printLateDatesText : ''}</td>
+            <td style="text-align: center; font-weight: bold;">${printLateCountText}</td>
           </tr>
           <tr>
             <td style="font-weight: bold;">อื่นๆ</td>
