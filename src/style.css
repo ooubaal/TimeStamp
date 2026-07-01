@@ -551,17 +551,19 @@ input:focus {
 }
 
 @media print {
-  body * {
-    visibility: hidden;
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  #app {
+    display: none !important;
   }
   #print-container, #print-container * {
     visibility: visible;
   }
   #print-container {
     display: block !important;
-    position: absolute;
-    left: 0;
-    top: 0;
+    position: relative;
     width: 100%;
     background: white !important;
     color: black !important;
@@ -569,7 +571,7 @@ input:focus {
   .print-page {
     page-break-after: always;
     break-after: page;
-    padding: 1.5cm;
+    padding: 0.8cm 1.2cm;
     box-sizing: border-box;
     width: 100%;
     color: black !important;
@@ -577,6 +579,10 @@ input:focus {
     font-family: 'Sarabun', 'Inter', sans-serif !important;
     font-size: 13px;
     line-height: 1.4;
+  }
+  .print-page:last-child {
+    page-break-after: avoid;
+    break-after: avoid;
   }
   .print-header {
     text-align: center;
