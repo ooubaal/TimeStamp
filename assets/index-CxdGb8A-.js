@@ -127,7 +127,7 @@
         </div>
       </div>
     `,f=[],p=[];e.records.forEach(e=>{if(e.status===`สาย`||e.status===`สายครึ่งวัน`){let t=new Date(e.date).getDay()===0||new Date(e.date).getDay()===6,n=Q.holidays.some(t=>t.date===e.date)||t,r=i(e.date);n?p.push(r):f.push(r)}});let m=l?`
-      <div class="print-verification-title">2. ตารางสรุปเพื่อลงข้อมูลยืนยันจากเจ้าหน้าที่</div>
+      <div class="print-verification-title">ตารางสรุปเพื่อลงข้อมูลยืนยันจากเจ้าหน้าที่</div>
       <table class="print-verification-table">
         <thead>
           <tr>
@@ -182,7 +182,7 @@
         <div><strong>ฝ่าย/หน่วยงาน:</strong> ${e.department}</div>
       </div>
 
-      <h3 style="font-size: 12px; font-weight: bold; margin-top: 0; margin-bottom: 5px; text-align: left;">1. ประวัติเวลาปฏิบัติงานจริงประจำเดือน</h3>
+      <h3 style="font-size: 12px; font-weight: bold; margin-top: 0; margin-bottom: 5px; text-align: left;">ประวัติเวลาปฏิบัติงานจริงประจำเดือน</h3>
       ${d}
 
       ${m}
