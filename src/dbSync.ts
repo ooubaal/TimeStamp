@@ -27,12 +27,26 @@ export interface EmployeeData {
   records: { [date: string]: string[] }; // date -> times
 }
 
+export interface LeaveRecord {
+  timestamp: string;
+  staffId: string;
+  staffName: string;
+  leaveType: string;
+  leaveFormat: string;
+  hourMinutes: number;
+  missedScanType: string;
+  startDate: string;
+  endDate: string;
+}
+
 export interface TimeStampDB {
   rules: RuleSettings;
   holidays: Holiday[];
   employees: EmployeeData[];
   importedFiles: string[];
   fileDates?: { [filename: string]: string[] };
+  leaveSheetUrl?: string;
+  leaveRecords?: LeaveRecord[];
   version: string;
   updatedAt: string;
 }
@@ -81,6 +95,8 @@ export const initialDB = (): TimeStampDB => ({
   employees: [],
   importedFiles: [],
   fileDates: {},
+  leaveSheetUrl: "",
+  leaveRecords: [],
   version: "1.0.0",
   updatedAt: new Date().toISOString(),
 });
@@ -151,6 +167,8 @@ export function sanitizeDB(json: any): TimeStampDB {
   const employees = Array.isArray(json.employees) ? json.employees : base.employees;
   const importedFiles = Array.isArray(json.importedFiles) ? json.importedFiles : base.importedFiles;
   const fileDates = json.fileDates && typeof json.fileDates === 'object' ? json.fileDates : base.fileDates;
+  const leaveSheetUrl = typeof json.leaveSheetUrl === 'string' ? json.leaveSheetUrl : base.leaveSheetUrl;
+  const leaveRecords = Array.isArray(json.leaveRecords) ? json.leaveRecords : base.leaveRecords;
   
   return {
     rules,
@@ -158,6 +176,8 @@ export function sanitizeDB(json: any): TimeStampDB {
     employees,
     importedFiles,
     fileDates,
+    leaveSheetUrl,
+    leaveRecords,
     version: json.version || base.version,
     updatedAt: json.updatedAt || base.updatedAt
   };

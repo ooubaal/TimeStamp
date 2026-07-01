@@ -10,7 +10,8 @@ import {
 import type {
   TimeStampDB,
   Holiday,
-  RuleSettings
+  RuleSettings,
+  LeaveRecord
 } from './dbSync';
 import { 
   parseExcelFile, 
@@ -94,6 +95,9 @@ const printContainer = document.getElementById('print-container') as HTMLElement
 const printShowStatusCheckbox = document.getElementById('print-show-status') as HTMLInputElement;
 const printShowVerificationCheckbox = document.getElementById('print-show-verification') as HTMLInputElement;
 const selectAllPrint = document.getElementById('select-all-print') as HTMLInputElement;
+const leaveSheetUrlInput = document.getElementById('leave-sheet-url') as HTMLInputElement;
+const btnSyncLeave = document.getElementById('btn-sync-leave') as HTMLButtonElement;
+const btnClearLeave = document.getElementById('btn-clear-leave') as HTMLButtonElement;
 
 const summaryTableBody = document.getElementById('summary-table-body') as HTMLElement;
 
@@ -460,6 +464,60 @@ function init() {
 
   // Restore employee data from local storage if exists
   applyEmployeesFromState();
+
+  if (dbState.leaveSheetUrl) {
+    leaveSheetUrlInput.value = dbState.leaveSheetUrl;
+  }
+  renderLeaveSummaryTable();
+  renderLeaveAlerts();
+
+  btnSyncLeave.addEventListener('click', () => {
+    const url = leaveSheetUrlInput.value.trim();
+    if (!url) {
+      alert('กรุณากรอก Google Sheets CSV URL');
+      return;
+    }
+    btnSyncLeave.disabled = true;
+    btnSyncLeave.textContent = '⏳ กำลังซิงค์...';
+
+    fetch(url)
+      .then(res => {
+        if (!res.ok) throw new Error('Network response was not ok');
+        return res.text();
+      })
+      .then(text => {
+        const rows = parseCSV(text);
+        const records = mapCSVToLeaveRecords(rows);
+        dbState.leaveSheetUrl = url;
+        dbState.leaveRecords = records;
+        saveAndSync();
+        renderLeaveSummaryTable();
+        renderLeaveAlerts();
+        recalculateAndRender();
+        alert(`ซิงค์ข้อมูลวันลาสำเร็จ! โหลดได้ทั้งหมด ${records.length} รายการ`);
+      })
+      .catch(err => {
+        console.error(err);
+        alert('เกิดข้อผิดพลาดในการดึงข้อมูลจาก URL กรุณาตรวจสอบว่าคุณได้ "เผยแพร่ไปยังเว็บ" เป็นไฟล์ CSV เรียบร้อยแล้ว');
+      })
+      .finally(() => {
+        btnSyncLeave.disabled = false;
+        btnSyncLeave.textContent = '🔄 ซิงค์ข้อมูลวันลา';
+      });
+  });
+
+  btnClearLeave.addEventListener('click', () => {
+    if (confirm('คุณต้องการล้างข้อมูลวันลาทั้งหมดหรือไม่?')) {
+      dbState.leaveSheetUrl = '';
+      dbState.leaveRecords = [];
+      leaveSheetUrlInput.value = '';
+      saveAndSync();
+      renderLeaveSummaryTable();
+      renderLeaveAlerts();
+      recalculateAndRender();
+      alert('ล้างข้อมูลวันลาเรียบร้อยแล้ว');
+    }
+  });
 }
 
 // Update Database Sync Status Label
@@ -588,6 +646,9 @@ async function pullFromCloud() {
       renderRules();
       renderHolidays();
       applyEmployeesFromState();
+      leaveSheetUrlInput.value = dbState.leaveSheetUrl || '';
+      renderLeaveSummaryTable();
+      renderLeaveAlerts();
       updateSyncStatus(true, 'ซิงค์ข้อมูลจาก Gist Cloud สำเร็จ!');
     }
   } catch (err: any) {
@@ -723,6 +784,45 @@ function timeToMinutes(timeStr: string): number {
   return h * 60 + m;
 }
 
+function parseDateToISO(dateStr: string): string {
+  if (!dateStr) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr;
+  }
+  const parts = dateStr.split('/');
+  if (parts.length === 3) {
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    let year = parseInt(parts[2], 10);
+    if (year > 2500) {
+      year -= 543;
+    }
+    return `${year}-${month}-${day}`;
+  }
+  return dateStr;
+}
+
+function expandLeaveRecordDays(r: LeaveRecord): { date: string, type: string, format: string, hourMinutes: number, missedScanType: string }[] {
+  const days: { date: string, type: string, format: string, hourMinutes: number, missedScanType: string }[] = [];
+  if (!r.startDate) return [];
+  const start = new Date(r.startDate);
+  const end = r.endDate ? new Date(r.endDate) : start;
+
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    days.push({
+      date: `${year}-${month}-${day}`,
+      type: r.leaveType,
+      format: r.leaveFormat,
+      hourMinutes: r.hourMinutes || 0,
+      missedScanType: r.missedScanType || ''
+    });
+  }
+  return days;
+}
+
 function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holidays: Holiday[], start: string, end: string): ProcessedStaffSummary {
   const workedDates = Object.keys(staff.records).filter(d => (!start || d >= start) && (!end || d <= end)).sort();
   
@@ -743,6 +843,11 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
     daysInRange.push(...workedDates);
   }
 
+  // Load leave records for this employee
+  const staffLeaves = (dbState.leaveRecords || [])
+    .filter(r => r.staffId === staff.id)
+    .flatMap(expandLeaveRecordDays);
+
   const processedRecords: ProcessedDayRecord[] = [];
   let workedDays = 0;
   let lateCount = 0;
@@ -762,6 +867,7 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
     const isHoliday = holidays.some(h => h.date === dateStr) || isWeekend;
 
     const scans = staff.records[dateStr] || [];
+    const leaveDay = staffLeaves.find(l => l.date === dateStr);
     
     // Sort scan times
     scans.sort();
@@ -776,6 +882,37 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
           lateMinutes: 0,
           earlyMinutes: 0
         });
+      } else if (leaveDay) {
+        if (leaveDay.type === 'แจ้งลืมประทับตราบัตร' && leaveDay.missedScanType === 'ลืมทั้งวัน') {
+          workedDays++;
+          processedRecords.push({
+            date: dateStr,
+            checkIn: '08:30 (แจ้ง)',
+            checkOut: '16:30 (แจ้ง)',
+            status: 'ลืมรูดบัตร',
+            lateMinutes: 0,
+            earlyMinutes: 0
+          });
+        } else {
+          let statusText = leaveDay.type;
+          if (leaveDay.format === 'ครึ่งวันเช้า') {
+            statusText = `${leaveDay.type}(เช้า)`;
+            leaveCount += 0.5;
+          } else if (leaveDay.format === 'ครึ่งวันบ่าย') {
+            statusText = `${leaveDay.type}(บ่าย)`;
+            leaveCount += 0.5;
+          } else {
+            leaveCount += 1;
+          }
+          processedRecords.push({
+            date: dateStr,
+            checkIn: '-',
+            checkOut: '-',
+            status: statusText,
+            lateMinutes: 0,
+            earlyMinutes: 0
+          });
+        }
       } else {
         // Only classify as absent if we have imported data for this date in the system
         const anyEmployeeHasData = parsedEmployees.some(emp => emp.records[dateStr] && emp.records[dateStr].length > 0);
@@ -825,6 +962,15 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
       }
     }
 
+    // Apply missed scan stamping adjustments
+    if (leaveDay && leaveDay.type === 'แจ้งลืมประทับตราบัตร') {
+      if (leaveDay.missedScanType === 'รอบเข้างาน' && !checkIn) {
+        checkIn = '08:30 (แจ้ง)';
+      } else if (leaveDay.missedScanType === 'รอบออกงาน' && !checkOut) {
+        checkOut = '16:30 (แจ้ง)';
+      }
+    }
+
     let lateMinutes = 0;
     let earlyMinutes = 0;
     let isLate = false;
@@ -833,30 +979,51 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
 
     // Calculate Late
     if (checkIn) {
-      const inMin = timeToMinutes(checkIn);
-      const diff = inMin - normalInMinutes;
-      if (diff > rules.lateAllowanceMinutes) {
-        lateMinutes = diff;
-        isLate = true;
-        if (diff >= rules.halfDayLateMinutes) {
-          isHalfDayLate = true;
+      if (checkIn.includes('(แจ้ง)')) {
+        lateMinutes = 0;
+        isLate = false;
+      } else {
+        const inMin = timeToMinutes(checkIn);
+        const diff = inMin - normalInMinutes;
+        
+        let adjustedDiff = diff;
+        if (leaveDay && leaveDay.type === 'ลาชั่วโมง') {
+          adjustedDiff = Math.max(0, diff - leaveDay.hourMinutes);
+        }
+
+        if (adjustedDiff > rules.lateAllowanceMinutes) {
+          lateMinutes = adjustedDiff;
+          isLate = true;
+          if (adjustedDiff >= rules.halfDayLateMinutes) {
+            isHalfDayLate = true;
+          }
         }
       }
     } else {
-      // Missing Check-in (will be caught by isMissingCheckIn status check)
       isLate = false;
+    }
+
+    if (leaveDay && leaveDay.type === 'ปฏิบัติงานนอกสถานที่') {
+      isLate = false;
+      isHalfDayLate = false;
+      lateMinutes = 0;
     }
 
     // Calculate Early Checkout
     let isHalfDayAfternoonLeave = false;
     let isHalfDayMorningLeave = false;
 
-    // Detect "ลาครึ่งวันเช้า" (Morning Leave)
-    // If checkIn is empty in the morning, but has a scan starting around midday (e.g. 10:30 - 13:00) and checkOut is normal.
-    // 10:30 in minutes is 10 * 60 + 30 = 630. 13:00 is 780.
-    if (scans.length >= 1) {
+    if (leaveDay) {
+      if (leaveDay.format === 'ครึ่งวันเช้า') {
+        isHalfDayMorningLeave = true;
+      } else if (leaveDay.format === 'ครึ่งวันบ่าย') {
+        isHalfDayAfternoonLeave = true;
+      }
+    }
+
+    // Detect "ลาครึ่งวันเช้า" (Morning Leave) automatically from scans if not set
+    if (!isHalfDayMorningLeave && scans.length >= 1) {
       const firstScanMin = timeToMinutes(scans[0]);
-      // If first scan is between 10:30 and 13:00 (630 to 780 mins), it's likely a check-in for the afternoon (Morning Leave)
       if (firstScanMin >= 630 && firstScanMin <= 780) {
         checkIn = scans[0];
         checkOut = scans[scans.length - 1] !== checkIn ? scans[scans.length - 1] : '';
@@ -865,21 +1032,31 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
     }
 
     if (checkOut && !isHalfDayMorningLeave) {
-      const outMin = timeToMinutes(checkOut);
-      
-      // If check-out is around midday break (e.g. 12:00 - 13:00) and check-in was normal, it counts as "Half-Day Leave (afternoon)"
-      if (outMin >= 720 && outMin <= 780) {
-        isHalfDayAfternoonLeave = true;
-        earlyMinutes = 0; // It's scheduled half-day leave, not accidental early check-out
+      if (checkOut.includes('(แจ้ง)')) {
+        earlyMinutes = 0;
+        isEarlyOut = false;
       } else {
-        const diff = normalOutMinutes - outMin;
-        if (diff > rules.earlyCheckoutAllowanceMinutes) {
-          earlyMinutes = diff;
-          isEarlyOut = true;
+        const outMin = timeToMinutes(checkOut);
+        
+        // If check-out is around midday break (e.g. 12:00 - 13:00) and check-in was normal, it counts as "Half-Day Leave (afternoon)"
+        if (outMin >= 720 && outMin <= 780) {
+          isHalfDayAfternoonLeave = true;
+          earlyMinutes = 0;
+        } else {
+          const diff = normalOutMinutes - outMin;
+          
+          let adjustedDiff = diff;
+          if (leaveDay && leaveDay.type === 'ลาชั่วโมง') {
+            adjustedDiff = Math.max(0, diff - leaveDay.hourMinutes);
+          }
+
+          if (adjustedDiff > rules.earlyCheckoutAllowanceMinutes) {
+            earlyMinutes = adjustedDiff;
+            isEarlyOut = true;
+          }
         }
       }
     } else if (!checkOut && !isHalfDayMorningLeave) {
-      // Missing Check-out
       isEarlyOut = true;
     }
 
@@ -889,15 +1066,31 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
       lateMinutes = 0;
       // Calculate early checkout if checkOut exists
       if (checkOut) {
-        const outMin = timeToMinutes(checkOut);
-        const diff = normalOutMinutes - outMin;
-        if (diff > rules.earlyCheckoutAllowanceMinutes) {
-          earlyMinutes = diff;
-          isEarlyOut = true;
+        if (checkOut.includes('(แจ้ง)')) {
+          earlyMinutes = 0;
+          isEarlyOut = false;
+        } else {
+          const outMin = timeToMinutes(checkOut);
+          const diff = normalOutMinutes - outMin;
+          
+          let adjustedDiff = diff;
+          if (leaveDay && leaveDay.type === 'ลาชั่วโมง') {
+            adjustedDiff = Math.max(0, diff - leaveDay.hourMinutes);
+          }
+
+          if (adjustedDiff > rules.earlyCheckoutAllowanceMinutes) {
+            earlyMinutes = adjustedDiff;
+            isEarlyOut = true;
+          }
         }
       } else {
         isEarlyOut = true; // Missing checkout
       }
+    }
+
+    if (leaveDay && leaveDay.type === 'ปฏิบัติงานนอกสถานที่') {
+      isEarlyOut = false;
+      earlyMinutes = 0;
     }
 
     // Determine final daily status
@@ -933,9 +1126,9 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
     }
 
     if (isHalfDayAfternoonLeave) {
-      status = 'ลาครึ่งวันบ่าย';
+      status = leaveDay ? `${leaveDay.type}(บ่าย)` : 'ลาครึ่งวันบ่าย';
     } else if (isHalfDayMorningLeave) {
-      status = 'ลาครึ่งวันเช้า';
+      status = leaveDay ? `${leaveDay.type}(เช้า)` : 'ลาครึ่งวันเช้า';
     } else if (isMissingCheckOut) {
       status = 'ไม่สแกนออก';
       earlyMinutes = 0; // Clear early minutes since it was a missing scan, not early checkout
@@ -965,6 +1158,12 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
     } else if (isOT8) {
       status = 'OT8';
       ot8Count++;
+    } else if (checkIn.includes('(แจ้ง)') || checkOut.includes('(แจ้ง)')) {
+      status = 'ลืมรูดบัตร';
+    } else if (leaveDay && leaveDay.type === 'ปฏิบัติงานนอกสถานที่') {
+      status = 'นอกสถานที่';
+    } else if (leaveDay && leaveDay.type === 'ลาชั่วโมง') {
+      status = 'ลาชั่วโมง';
     }
 
     processedRecords.push({
@@ -1528,6 +1727,263 @@ function handlePrintReports() {
   });
 
   window.print();
+}
+
+function parseCSV(text: string): string[][] {
+  const lines: string[][] = [];
+  let row: string[] = [];
+  let inQuotes = false;
+  let currentVal = '';
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const nextChar = text[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        currentVal += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      row.push(currentVal.trim());
+      currentVal = '';
+    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+      row.push(currentVal.trim());
+      if (row.length > 0 && row.some(cell => cell !== '')) {
+        lines.push(row);
+      }
+      row = [];
+      currentVal = '';
+      if (char === '\r' && nextChar === '\n') {
+        i++;
+      }
+    } else {
+      currentVal += char;
+    }
+  }
+  if (currentVal || row.length > 0) {
+    row.push(currentVal.trim());
+    if (row.some(cell => cell !== '')) {
+      lines.push(row);
+    }
+  }
+  return lines;
+}
+
+function mapCSVToLeaveRecords(csvRows: string[][]): LeaveRecord[] {
+  if (csvRows.length < 2) return [];
+  const headers = csvRows[0].map(h => h.toLowerCase());
+
+  const idxId = headers.findIndex(h => h.includes('รหัส') || h.includes('id') || h.includes('staff'));
+  const idxName = headers.findIndex(h => h.includes('ชื่อ') || h.includes('name'));
+  const idxType = headers.findIndex(h => h.includes('ประเภท') || h.includes('leave type') || h.includes('การลา'));
+  const idxFormat = headers.findIndex(h => h.includes('รูปแบบ') || h.includes('ลักษณะ') || h.includes('ครึ่งวัน') || h.includes('format'));
+  const idxMin = headers.findIndex(h => h.includes('นาที') || h.includes('ชั่วโมง') || h.includes('minute') || h.includes('hour'));
+  const idxMissed = headers.findIndex(h => h.includes('ลืม') || h.includes('ประทับตรา') || h.includes('รูด') || h.includes('missed'));
+  const idxStart = headers.findIndex(h => h.includes('เริ่ม') || h.includes('วันที่ลา') || h.includes('วันที่') || h.includes('start'));
+  const idxEnd = headers.findIndex(h => h.includes('สิ้นสุด') || h.includes('ถึงวันที่') || h.includes('end'));
+
+  const records: LeaveRecord[] = [];
+
+  for (let i = 1; i < csvRows.length; i++) {
+    const row = csvRows[i];
+    const staffId = idxId !== -1 ? row[idxId] : '';
+    const staffName = idxName !== -1 ? row[idxName] : '';
+    if (!staffId) continue;
+
+    const leaveType = idxType !== -1 ? row[idxType] : '';
+    const leaveFormat = idxFormat !== -1 ? row[idxFormat] : 'เต็มวัน';
+    
+    let hourMinutes = 0;
+    if (idxMin !== -1 && row[idxMin]) {
+      hourMinutes = parseInt(row[idxMin], 10) || 0;
+    }
+
+    const missedScanType = idxMissed !== -1 ? row[idxMissed] : '';
+    const rawStart = idxStart !== -1 ? row[idxStart] : '';
+    const rawEnd = idxEnd !== -1 ? row[idxEnd] : '';
+
+    const startDate = parseDateToISO(rawStart);
+    let endDate = parseDateToISO(rawEnd);
+    if (!endDate) {
+      endDate = startDate;
+    }
+
+    records.push({
+      timestamp: row[0] || '',
+      staffId,
+      staffName,
+      leaveType,
+      leaveFormat,
+      hourMinutes,
+      missedScanType,
+      startDate,
+      endDate
+    });
+  }
+
+  return records;
+}
+
+function renderLeaveSummaryTable() {
+  const tbody = document.getElementById('leave-summary-table-body');
+  if (!tbody) return;
+
+  const records = dbState.leaveRecords || [];
+  if (records.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" class="text-center text-muted" style="padding: 12px; border: 1px solid var(--border-color); background-color: #0f172a;">ยังไม่มีการเชื่อมต่อหรือข้อมูลดิบของการขอลา</td>
+      </tr>
+    `;
+    const countBadge = document.getElementById('leave-sync-count');
+    if (countBadge) countBadge.textContent = '0 รายการ';
+    return;
+  }
+
+  const statsMap = new Map<string, {
+    name: string,
+    vacation: number,
+    personal: number,
+    sick: number,
+    hourMinutes: number,
+    fieldwork: number,
+    forgot: number
+  }>();
+
+  records.forEach(r => {
+    if (!statsMap.has(r.staffId)) {
+      statsMap.set(r.staffId, {
+        name: r.staffName,
+        vacation: 0,
+        personal: 0,
+        sick: 0,
+        hourMinutes: 0,
+        fieldwork: 0,
+        forgot: 0
+      });
+    }
+
+    const s = statsMap.get(r.staffId)!;
+    let weight = 1;
+    if (r.leaveFormat === 'ครึ่งวันเช้า' || r.leaveFormat === 'ครึ่งวันบ่าย') {
+      weight = 0.5;
+    }
+
+    const type = r.leaveType;
+    if (type.includes('พักร้อน')) {
+      s.vacation += weight;
+    } else if (type.includes('กิจ')) {
+      s.personal += weight;
+    } else if (type.includes('ป่วย')) {
+      s.sick += weight;
+    } else if (type.includes('ชั่วโมง')) {
+      s.hourMinutes += r.hourMinutes;
+    } else if (type.includes('นอกสถานที่')) {
+      s.fieldwork += 1;
+    } else if (type.includes('ลืม') || type.includes('ประทับตรา')) {
+      s.forgot += 1;
+    }
+  });
+
+  tbody.innerHTML = '';
+  statsMap.forEach((s, id) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="padding: 8px; text-align: center; border: 1px solid var(--border-color);">${id}</td>
+      <td style="padding: 8px; text-align: left; border: 1px solid var(--border-color);">${s.name}</td>
+      <td style="padding: 8px; text-align: center; border: 1px solid var(--border-color);">${s.vacation} วัน</td>
+      <td style="padding: 8px; text-align: center; border: 1px solid var(--border-color);">${s.personal} วัน</td>
+      <td style="padding: 8px; text-align: center; border: 1px solid var(--border-color);">${s.sick} วัน</td>
+      <td style="padding: 8px; text-align: center; border: 1px solid var(--border-color);">${s.hourMinutes} นาที</td>
+      <td style="padding: 8px; text-align: center; border: 1px solid var(--border-color);">${s.fieldwork} ครั้ง</td>
+      <td style="padding: 8px; text-align: center; border: 1px solid var(--border-color);">${s.forgot} ครั้ง</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  const countBadge = document.getElementById('leave-sync-count');
+  if (countBadge) {
+    countBadge.textContent = `${records.length} รายการ`;
+  }
+}
+
+function renderLeaveAlerts() {
+  const alertPanel = document.getElementById('leave-alert-panel');
+  const alertList = document.getElementById('leave-alert-list');
+  if (!alertPanel || !alertList) return;
+
+  const records = dbState.leaveRecords || [];
+  if (records.length === 0) {
+    alertPanel.style.display = 'none';
+    return;
+  }
+
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+  
+  const tomorrowLeaves: { name: string, type: string, format: string }[] = [];
+
+  records.forEach(r => {
+    const days = expandLeaveRecordDays(r);
+    const hasTomorrow = days.some(d => d.date === tomorrowStr);
+    if (hasTomorrow) {
+      tomorrowLeaves.push({
+        name: r.staffName,
+        type: r.leaveType,
+        format: r.leaveFormat
+      });
+    }
+  });
+
+  if (tomorrowLeaves.length > 0) {
+    alertPanel.style.display = 'block';
+    alertList.innerHTML = tomorrowLeaves
+      .map(l => {
+        const formatText = l.format && l.format !== 'เต็มวัน' ? ` (${l.format})` : '';
+        return `• <strong>${l.name}</strong> ขอ <strong>${l.type}${formatText}</strong> ในวันพรุ่งนี้ (${formatDateThai(tomorrowStr)})`;
+      })
+      .join('<br/>');
+      
+    // Trigger push notification once
+    triggerBrowserNotification(tomorrowLeaves.length);
+  } else {
+    alertPanel.style.display = 'none';
+  }
+}
+
+function formatDateThai(dateStr: string): string {
+  const p = dateStr.split('-');
+  if (p.length !== 3) return dateStr;
+  const monthsThai = [
+    'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+    'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+  ];
+  const day = parseInt(p[2], 10);
+  const month = monthsThai[parseInt(p[1], 10) - 1];
+  const year = parseInt(p[0], 10) + 543;
+  return `${day} ${month} ${year}`;
+}
+
+function triggerBrowserNotification(tomorrowLeavesCount: number) {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "granted") {
+    new Notification("🔔 มีเจ้าหน้าที่ลาปฏิบัติงานวันพรุ่งนี้", {
+      body: `วันพรุ่งนี้มีผู้แจ้งขอลาจำนวน ${tomorrowLeavesCount} คน โปรดวางแผนกำลังพลล่วงหน้า`,
+    });
+  } else if (Notification.permission !== "denied") {
+    Notification.requestPermission().then(permission => {
+      if (permission === "granted") {
+        new Notification("🔔 มีเจ้าหน้าที่ลาปฏิบัติงานวันพรุ่งนี้", {
+          body: `วันพรุ่งนี้มีผู้แจ้งขอลาจำนวน ${tomorrowLeavesCount} คน โปรดวางแผนกำลังพลล่วงหน้า`
+        });
+      }
+    });
+  }
 }
 
 // Bootstrap
