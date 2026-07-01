@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/TimeStamp/assets/index-BwVwc-AI.js"></script>
+    <script type="module" crossorigin src="/TimeStamp/assets/index-3IXApa5y.js"></script>
     <link rel="stylesheet" crossorigin href="/TimeStamp/assets/index-B3x1-BTI.css">
   </head>
   <body>
@@ -298,8 +298,65 @@
           </div>
         </section>
 
+        <!-- Module 5: Google Sheets Leave Sync -->
+        <section class="card leave-sync-card" style="margin-top: 1.5rem; width: 100%;">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding: 1rem 1.5rem;">
+            <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0; color: white;">5. เชื่อมโยงประวัติขอลาผ่าน Google Sheet / Form</h2>
+            <span class="badge badge-secondary" id="leave-sync-count" style="background-color: #475569; color: white; padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.75rem;">0 รายการ</span>
+          </div>
+          <div class="card-body" style="padding: 1.5rem;">
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem; text-align: left; line-height: 1.5;">
+              วิธีซิงค์ข้อมูลการลาอัตโนมัติ: เผยแพร่ Google Sheet ที่ได้รับจาก Google Form ออกไปเป็นเว็บแบบ <strong>CSV</strong> (ใน Google Sheet กด <em>ไฟล์ > แชร์ > เผยแพร่ไปยังเว็บ > เลือก CSV และกดเผยแพร่</em>) จากนั้นนำลิงก์ปลายทางมาป้อนด้านล่างนี้:
+            </p>
+            <div class="form-row" style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 1rem; align-items: flex-end;">
+              <div class="form-group" style="flex: 2; min-width: 250px; text-align: left; margin-bottom: 0;">
+                <label for="leave-sheet-url" style="font-weight: 500; font-size: 0.85rem; margin-bottom: 6px; display: block; color: var(--text-muted);">Google Sheets CSV URL:</label>
+                <input type="text" id="leave-sheet-url" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" style="width: 100%;" />
+              </div>
+              <div class="form-group" style="flex: 0.5; min-width: 150px; margin-bottom: 0;">
+                <button class="btn btn-primary" id="btn-sync-leave" style="width: 100%; padding: 0.65rem; background-color: #10b981; border-color: #059669; color: white;">🔄 ซิงค์ข้อมูลวันลา</button>
+              </div>
+              <div class="form-group" style="flex: 0.5; min-width: 150px; margin-bottom: 0;">
+                <button class="btn btn-secondary" id="btn-clear-leave" style="width: 100%; padding: 0.65rem; background-color: #ef4444; border-color: #dc2626; color: white;">✕ ล้างข้อมูลลา</button>
+              </div>
+            </div>
+
+            <!-- Alert Display Panel (Tomorrow / Today Leaves) -->
+            <div class="leave-alert-panel" id="leave-alert-panel" style="background-color: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 6px; margin-bottom: 1.25rem; display: none;">
+              <div style="font-weight: 600; color: #60a5fa; display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 0.9rem;">
+                <span>🔔 การวางแผนกำลังพลในวันทำงานถัดไป:</span>
+              </div>
+              <div id="leave-alert-list" style="font-size: 0.85rem; color: #e2e8f0; line-height: 1.5; text-align: left;"></div>
+            </div>
+
+            <!-- Leave Summary Dashboard Table -->
+            <div class="overflow-x">
+              <h3 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 8px; color: #60a5fa; text-align: left;">สรุปข้อมูลวันลาสะสมตามประวัติ (Google Sheet)</h3>
+              <table class="summary-table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                <thead>
+                  <tr style="background-color: #1e293b;">
+                    <th style="padding: 8px; text-align: center; border: 1px solid var(--border-color); color: white;">รหัสพนักงาน</th>
+                    <th style="padding: 8px; text-align: left; border: 1px solid var(--border-color); color: white;">ชื่อเจ้าหน้าที่</th>
+                    <th style="padding: 8px; text-align: center; border: 1px solid var(--border-color); color: white;">ลาพักร้อน (วัน)</th>
+                    <th style="padding: 8px; text-align: center; border: 1px solid var(--border-color); color: white;">ลากิจ (วัน)</th>
+                    <th style="padding: 8px; text-align: center; border: 1px solid var(--border-color); color: white;">ลาป่วย (วัน)</th>
+                    <th style="padding: 8px; text-align: center; border: 1px solid var(--border-color); color: white;">ลาชั่วโมงสะสม (นาที)</th>
+                    <th style="padding: 8px; text-align: center; border: 1px solid var(--border-color); color: white;">นอกสถานที่ (ครั้ง)</th>
+                    <th style="padding: 8px; text-align: center; border: 1px solid var(--border-color); color: white;">ลืมประทับตรา (ครั้ง)</th>
+                  </tr>
+                </thead>
+                <tbody id="leave-summary-table-body">
+                  <tr>
+                    <td colspan="8" class="text-center text-muted" style="padding: 12px; border: 1px solid var(--border-color); background-color: #0f172a;">ยังไม่มีการเชื่อมต่อหรือข้อมูลดิบของการขอลา</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
         <!-- Module 3: Summary Dashboard -->
-        <section class="card summary-card">
+        <section class="card summary-card" style="margin-top: 1.5rem;">
           <div class="card-header">
             <h2>4. ตารางสรุปเวลาปฏิบัติงานพนักงาน</h2>
           </div>
