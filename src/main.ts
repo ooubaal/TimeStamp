@@ -91,6 +91,8 @@ const filterMonthSelect = document.getElementById('filter-month') as HTMLSelectE
 const filterYearSelect = document.getElementById('filter-year') as HTMLSelectElement;
 const filterDepartmentSelect = document.getElementById('filter-department') as HTMLSelectElement;
 const printContainer = document.getElementById('print-container') as HTMLElement;
+const printShowStatusCheckbox = document.getElementById('print-show-status') as HTMLInputElement;
+const printShowVerificationCheckbox = document.getElementById('print-show-verification') as HTMLInputElement;
 
 const summaryTableBody = document.getElementById('summary-table-body') as HTMLElement;
 
@@ -1286,6 +1288,9 @@ function handlePrintReports() {
     const leftRecords = s.records.slice(0, half);
     const rightRecords = s.records.slice(half);
 
+    const showStatusCol = printShowStatusCheckbox.checked;
+    const showVerification = printShowVerificationCheckbox.checked;
+
     const renderTableColumn = (records: typeof s.records) => {
       let rowsHTML = '';
       records.forEach(r => {
@@ -1298,7 +1303,7 @@ function handlePrintReports() {
             <td style="padding: 3px 4px !important; font-size: 11px;">${formatDateWithThaiDayPrint(r.date)}</td>
             <td style="padding: 3px 4px !important; font-size: 11px;">${r.checkIn || '-'}</td>
             <td style="padding: 3px 4px !important; font-size: 11px;">${r.checkOut || '-'}</td>
-            <td style="${statusStyle} padding: 3px 4px !important; font-size: 11px;">${r.status}</td>
+            ${showStatusCol ? `<td style="${statusStyle} padding: 3px 4px !important; font-size: 11px;">${r.status}</td>` : ''}
             <td style="padding: 3px 4px !important; font-size: 11px;"></td>
           </tr>
         `;
@@ -1308,10 +1313,10 @@ function handlePrintReports() {
         <table class="print-table" style="width: 100%; margin-bottom: 0; font-size: 11px; border-collapse: collapse;">
           <thead>
             <tr>
-              <th style="padding: 3px 4px !important; font-size: 11px; width: 28%;">วันที่</th>
-              <th style="padding: 3px 4px !important; font-size: 11px; width: 17%;">สแกนเข้า</th>
-              <th style="padding: 3px 4px !important; font-size: 11px; width: 17%;">สแกนออก</th>
-              <th style="padding: 3px 4px !important; font-size: 11px; width: 18%;">สถานะ</th>
+              <th style="padding: 3px 4px !important; font-size: 11px; width: ${showStatusCol ? '28%' : '38%'};">วันที่</th>
+              <th style="padding: 3px 4px !important; font-size: 11px; width: ${showStatusCol ? '17%' : '22%'};">สแกนเข้า</th>
+              <th style="padding: 3px 4px !important; font-size: 11px; width: ${showStatusCol ? '17%' : '22%'};">สแกนออก</th>
+              ${showStatusCol ? `<th style="padding: 3px 4px !important; font-size: 11px; width: 18%;">สถานะ</th>` : ''}
               <th style="padding: 3px 4px !important; font-size: 11px; width: 20%;">หมายเหตุ</th>
             </tr>
           </thead>
@@ -1349,36 +1354,9 @@ function handlePrintReports() {
       }
     });
 
-    let printLateDatesText = '';
-    if (normalLateDatesPrint.length > 0 && holidayLateDatesPrint.length > 0) {
-      printLateDatesText = `${normalLateDatesPrint.join(', ')} (${holidayLateDatesPrint.join(', ')})`;
-    } else if (normalLateDatesPrint.length > 0) {
-      printLateDatesText = normalLateDatesPrint.join(', ');
-    } else if (holidayLateDatesPrint.length > 0) {
-      printLateDatesText = `(${holidayLateDatesPrint.join(', ')})`;
-    }
 
-    const totalLateCount = s.lateCount + s.holidayLateCount;
-    const printLateCountText = totalLateCount > 0 
-      ? (s.holidayLateCount > 0 ? `${s.lateCount}(+${s.holidayLateCount}) ครั้ง` : `${s.lateCount} ครั้ง`)
-      : '-';
 
-    page.innerHTML = `
-      <div class="print-header" style="margin-bottom: 10px; padding-bottom: 5px;">
-        <h1 style="font-size: 16px; margin: 0 0 3px 0;">ใบตรวจสอบเวลาปฏิบัติงานและวันลาเจ้าหน้าที่</h1>
-        <div style="font-size: 12px; font-weight: bold;">ประจำเดือน ${periodText}</div>
-      </div>
-      
-      <div class="print-info-grid" style="margin-bottom: 10px; font-size: 12px; grid-template-columns: repeat(4, 1fr);">
-        <div><strong>ชื่อ-นามสกุล:</strong> ${s.name}</div>
-        <div><strong>รหัสประจำตัว:</strong> ${s.id}</div>
-        <div><strong>ตำแหน่ง:</strong> ${s.position}</div>
-        <div><strong>ฝ่าย/หน่วยงาน:</strong> ${s.department}</div>
-      </div>
-
-      <h3 style="font-size: 12px; font-weight: bold; margin-top: 0; margin-bottom: 5px; text-align: left;">1. ประวัติเวลาปฏิบัติงานจริงประจำเดือน</h3>
-      ${sideBySideTablesHTML}
-
+    const verificationTableHTML = showVerification ? `
       <div class="print-verification-title">2. ตารางสรุปเพื่อลงข้อมูลยืนยันจากเจ้าหน้าที่</div>
       <table class="print-verification-table">
         <thead>
@@ -1405,9 +1383,14 @@ function handlePrintReports() {
             <td></td>
           </tr>
           <tr>
-            <td style="font-weight: bold;">สาย</td>
-            <td style="font-size: 11px;">${printLateDatesText ? 'ประมวลผลสายวันที่: ' + printLateDatesText : ''}</td>
-            <td style="text-align: center; font-weight: bold;">${printLateCountText}</td>
+            <td style="font-weight: bold;">สาย (วันธรรมดา)</td>
+            <td style="font-size: 11px;">${normalLateDatesPrint.join(', ')}</td>
+            <td style="text-align: center; font-weight: bold;">${s.lateCount > 0 ? s.lateCount + ' ครั้ง' : '-'}</td>
+          </tr>
+          <tr>
+            <td style="font-weight: bold;">สาย (วันหยุด)</td>
+            <td style="font-size: 11px;">${holidayLateDatesPrint.join(', ')}</td>
+            <td style="text-align: center; font-weight: bold;">${s.holidayLateCount > 0 ? s.holidayLateCount + ' ครั้ง' : '-'}</td>
           </tr>
           <tr>
             <td style="font-weight: bold;">อื่นๆ</td>
@@ -1416,6 +1399,25 @@ function handlePrintReports() {
           </tr>
         </tbody>
       </table>
+    ` : '';
+
+    page.innerHTML = `
+      <div class="print-header" style="margin-bottom: 10px; padding-bottom: 5px;">
+        <h1 style="font-size: 16px; margin: 0 0 3px 0;">ใบตรวจสอบเวลาปฏิบัติงานและวันลาเจ้าหน้าที่</h1>
+        <div style="font-size: 12px; font-weight: bold;">ประจำเดือน ${periodText}</div>
+      </div>
+      
+      <div class="print-info-grid" style="margin-bottom: 10px; font-size: 12px; grid-template-columns: repeat(4, 1fr);">
+        <div><strong>ชื่อ-นามสกุล:</strong> ${s.name}</div>
+        <div><strong>รหัสประจำตัว:</strong> ${s.id}</div>
+        <div><strong>ตำแหน่ง:</strong> ${s.position}</div>
+        <div><strong>ฝ่าย/หน่วยงาน:</strong> ${s.department}</div>
+      </div>
+
+      <h3 style="font-size: 12px; font-weight: bold; margin-top: 0; margin-bottom: 5px; text-align: left;">1. ประวัติเวลาปฏิบัติงานจริงประจำเดือน</h3>
+      ${sideBySideTablesHTML}
+
+      ${verificationTableHTML}
     `;
 
     printContainer.appendChild(page);
