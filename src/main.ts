@@ -1660,7 +1660,7 @@ function handlePrintReports() {
 
 
     const verificationTableHTML = showVerification ? `
-      <div class="print-verification-title">2. ตารางสรุปเพื่อลงข้อมูลยืนยันจากเจ้าหน้าที่</div>
+      <div class="print-verification-title">ตารางสรุปเพื่อลงข้อมูลยืนยันจากเจ้าหน้าที่</div>
       <table class="print-verification-table">
         <thead>
           <tr>
@@ -1717,7 +1717,7 @@ function handlePrintReports() {
         <div><strong>ฝ่าย/หน่วยงาน:</strong> ${s.department}</div>
       </div>
 
-      <h3 style="font-size: 12px; font-weight: bold; margin-top: 0; margin-bottom: 5px; text-align: left;">1. ประวัติเวลาปฏิบัติงานจริงประจำเดือน</h3>
+      <h3 style="font-size: 12px; font-weight: bold; margin-top: 0; margin-bottom: 5px; text-align: left;">ประวัติเวลาปฏิบัติงานจริงประจำเดือน</h3>
       ${sideBySideTablesHTML}
 
       ${verificationTableHTML}
