@@ -1404,24 +1404,24 @@ function handlePrintReports() {
         }
         rowsHTML += `
           <tr>
-            <td style="padding: 3px 4px !important; font-size: 11px;">${formatDateWithThaiDayPrint(r.date)}</td>
-            <td style="padding: 3px 4px !important; font-size: 11px;">${r.checkIn || '-'}</td>
-            <td style="padding: 3px 4px !important; font-size: 11px;">${r.checkOut || '-'}</td>
-            ${showStatusCol ? `<td style="${statusStyle} padding: 3px 4px !important; font-size: 11px;">${r.status}</td>` : ''}
-            <td style="padding: 3px 4px !important; font-size: 11px;"></td>
+            <td style="padding: 3px 4px !important; font-size: 13px;">${formatDateWithThaiDayPrint(r.date)}</td>
+            <td style="padding: 3px 4px !important; font-size: 13px;">${r.checkIn || '-'}</td>
+            <td style="padding: 3px 4px !important; font-size: 13px;">${r.checkOut || '-'}</td>
+            ${showStatusCol ? `<td style="${statusStyle} padding: 3px 4px !important; font-size: 13px;">${r.status}</td>` : ''}
+            <td style="padding: 3px 4px !important; font-size: 13px;"></td>
           </tr>
         `;
       });
 
       return `
-        <table class="print-table" style="width: 100%; margin-bottom: 0; font-size: 11px; border-collapse: collapse;">
+        <table class="print-table" style="width: 100%; margin-bottom: 0; font-size: 13px; border-collapse: collapse;">
           <thead>
             <tr>
-              <th style="padding: 3px 4px !important; font-size: 11px; width: ${showStatusCol ? '28%' : '38%'};">วันที่</th>
-              <th style="padding: 3px 4px !important; font-size: 11px; width: ${showStatusCol ? '17%' : '22%'};">สแกนเข้า</th>
-              <th style="padding: 3px 4px !important; font-size: 11px; width: ${showStatusCol ? '17%' : '22%'};">สแกนออก</th>
-              ${showStatusCol ? `<th style="padding: 3px 4px !important; font-size: 11px; width: 18%;">สถานะ</th>` : ''}
-              <th style="padding: 3px 4px !important; font-size: 11px; width: 20%;">หมายเหตุ</th>
+              <th style="padding: 3px 4px !important; font-size: 13px; width: ${showStatusCol ? '28%' : '38%'};">วันที่</th>
+              <th style="padding: 3px 4px !important; font-size: 13px; width: ${showStatusCol ? '17%' : '22%'};">สแกนเข้า</th>
+              <th style="padding: 3px 4px !important; font-size: 13px; width: ${showStatusCol ? '17%' : '22%'};">สแกนออก</th>
+              ${showStatusCol ? `<th style="padding: 3px 4px !important; font-size: 13px; width: 18%;">สถานะ</th>` : ''}
+              <th style="padding: 3px 4px !important; font-size: 13px; width: 20%;">หมายเหตุ</th>
             </tr>
           </thead>
           <tbody>
