@@ -93,6 +93,7 @@ const filterDepartmentSelect = document.getElementById('filter-department') as H
 const printContainer = document.getElementById('print-container') as HTMLElement;
 const printShowStatusCheckbox = document.getElementById('print-show-status') as HTMLInputElement;
 const printShowVerificationCheckbox = document.getElementById('print-show-verification') as HTMLInputElement;
+const selectAllPrint = document.getElementById('select-all-print') as HTMLInputElement;
 
 const summaryTableBody = document.getElementById('summary-table-body') as HTMLElement;
 
@@ -404,10 +405,16 @@ function init() {
   filterMonthSelect.addEventListener('change', recalculateAndRender);
   filterYearSelect.addEventListener('change', recalculateAndRender);
   filterDepartmentSelect.addEventListener('change', recalculateAndRender);
-
   filterStartDate.addEventListener('change', recalculateAndRender);
   filterEndDate.addEventListener('change', recalculateAndRender);
   searchStaff.addEventListener('input', recalculateAndRender);
+
+  selectAllPrint.addEventListener('change', () => {
+    const isChecked = selectAllPrint.checked;
+    document.querySelectorAll('.select-emp-print').forEach((cb) => {
+      (cb as HTMLInputElement).checked = isChecked;
+    });
+  });
 
   // Detail Modal Close
   btnCloseModal.addEventListener('click', () => {
@@ -655,7 +662,7 @@ function clearLoadedData() {
   
   summaryTableBody.innerHTML = `
     <tr>
-      <td colspan="9" class="text-center text-muted">กรุณานำเข้าไฟล์สแกนบัตร (Excel) เพื่อคำนวณและแสดงผลตารางสรุป</td>
+      <td colspan="10" class="text-center text-muted">กรุณานำเข้าไฟล์สแกนบัตร (Excel) เพื่อคำนวณและแสดงผลตารางสรุป</td>
     </tr>
   `;
 }
@@ -1043,7 +1050,7 @@ function recalculateAndRender() {
   if (filtered.length === 0) {
     summaryTableBody.innerHTML = `
       <tr>
-        <td colspan="9" class="text-center text-muted">ไม่พบข้อมูลตามคำค้นหาที่ระบุ</td>
+        <td colspan="10" class="text-center text-muted">ไม่พบข้อมูลตามคำค้นหาที่ระบุ</td>
       </tr>
     `;
     return;
@@ -1097,6 +1104,7 @@ function recalculateAndRender() {
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
+      <td style="text-align: center;"><input type="checkbox" class="select-emp-print" data-id="${s.id}" checked /></td>
       <td><strong>${s.id}</strong></td>
       <td>${s.name}</td>
       <td><span class="badge badge-info">${s.workedDays} วัน</span></td>
@@ -1129,6 +1137,12 @@ function recalculateAndRender() {
       <td><button class="btn btn-secondary btn-sm btn-view-detail" data-id="${s.id}">🔍 รายละเอียด</button></td>
     `;
     summaryTableBody.appendChild(tr);
+  });
+
+  // Sync select all status checkbox to newly rendered rows
+  const isAllChecked = selectAllPrint.checked;
+  document.querySelectorAll('.select-emp-print').forEach((cb) => {
+    (cb as HTMLInputElement).checked = isAllChecked;
   });
 
   // Attach Detail handlers
@@ -1243,6 +1257,16 @@ function handlePrintReports() {
     return;
   }
 
+  const checkedBoxes = document.querySelectorAll('.select-emp-print:checked');
+  const checkedIds = Array.from(checkedBoxes).map(cb => (cb as HTMLInputElement).getAttribute('data-id'));
+  
+  if (checkedIds.length === 0) {
+    alert('กรุณาเลือกเจ้าหน้าที่อย่างน้อย 1 คนเพื่อพิมพ์รายงาน');
+    return;
+  }
+
+  const printableSummaries = currentProcessedSummaries.filter(s => checkedIds.includes(s.id));
+
   // Get active month and year text for header
   let periodText = '';
   if (filterModeSelect.value === 'monthly') {
@@ -1279,7 +1303,7 @@ function handlePrintReports() {
     return dateStr;
   };
 
-  currentProcessedSummaries.forEach(s => {
+  printableSummaries.forEach(s => {
     const page = document.createElement('div');
     page.className = 'print-page';
 
