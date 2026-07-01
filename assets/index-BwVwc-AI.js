@@ -96,21 +96,21 @@
       `,Wh.appendChild(o)}),Hh.style.display=`flex`}function hg(){if(dg.length===0){alert(`ไม่มีข้อมูลสำหรับส่งออกรายงาน`);return}let e=[[`รหัสพนักงาน`,`ชื่อพนักงาน`,`ตำแหน่งงาน`,`ฝ่าย/หน่วยงาน`,`มาทำงาน (วัน)`,`สาย (ครั้ง)`,`ลา/ขาดงาน (วัน)`,`ออกก่อนเวลา (ครั้ง)`].join(`,`)];dg.forEach(t=>{let n=[`"${t.id}"`,`"${t.name}"`,`"${t.position}"`,`"${t.department}"`,t.workedDays,t.lateCount,t.leaveCount,t.earlyOutCount];e.push(n.join(`,`))});let t=`﻿`+e.join(`
 `),n=new Blob([t],{type:`text/csv;charset=utf-8;`}),r=URL.createObjectURL(n),i=document.createElement(`a`);i.href=r,i.download=`รายงานสรุปเวลาทำงาน_${new Date().toISOString().split(`T`)[0]}.csv`,document.body.appendChild(i),i.click(),document.body.removeChild(i),URL.revokeObjectURL(r)}function gg(){if(dg.length===0){alert(`ไม่มีข้อมูลสำหรับพิมพ์รายงาน`);return}let e=document.querySelectorAll(`.select-emp-print:checked`),t=Array.from(e).map(e=>e.getAttribute(`data-id`));if(t.length===0){alert(`กรุณาเลือกเจ้าหน้าที่อย่างน้อย 1 คนเพื่อพิมพ์รายงาน`);return}let n=dg.filter(e=>t.includes(e.id)),r=``;if(Nh.value===`monthly`){let e=[`มกราคม`,`กุมภาพันธ์`,`มีนาคม`,`เมษายน`,`พฤษภาคม`,`มิถุนายน`,`กรกฎาคม`,`สิงหาคม`,`กันยายน`,`ตุลาคม`,`พฤศจิกายน`,`ธันวาคม`],t=parseInt(Ph.value,10)-1,n=parseInt(Fh.value,10)+543;r=`${e[t]} พ.ศ. ${n}`}else{let e=Oh.value.split(`-`),t=kh.value.split(`-`),n=e=>e.length===3?`${e[2]}/${e[1]}/${parseInt(e[0],10)+543}`:``;r=`ระหว่างวันที่ ${n(e)} ถึง ${n(t)}`}Lh.innerHTML=``;let i=e=>{let t=e.split(`-`);return t.length===3?`${t[2]}/${t[1]}`:e},a=e=>{let t=[`อา.`,`จ.`,`อ.`,`พ.`,`พฤ.`,`ศ.`,`ส.`][new Date(e).getDay()],n=e.split(`-`);if(n.length===3){let e=String(parseInt(n[0],10)+543).slice(-2);return`${t} ${n[2]}/${n[1]}/${e}`}return e};n.forEach(e=>{let t=document.createElement(`div`);t.className=`print-page`;let n=Math.ceil(e.records.length/2),o=e.records.slice(0,n),s=e.records.slice(n),c=Rh.checked,l=zh.checked,u=e=>{let t=``;return e.forEach(e=>{let n=``;(e.status===`สาย`||e.status===`สายครึ่งวัน`||e.status===`ไม่สแกนออก`||e.status===`ไม่สแกนเข้า`||e.status===`ลา/ขาดงาน`)&&(n=`font-weight: bold; color: black;`),t+=`
           <tr>
-            <td style="padding: 3px 4px !important; font-size: 11px;">${a(e.date)}</td>
-            <td style="padding: 3px 4px !important; font-size: 11px;">${e.checkIn||`-`}</td>
-            <td style="padding: 3px 4px !important; font-size: 11px;">${e.checkOut||`-`}</td>
-            ${c?`<td style="${n} padding: 3px 4px !important; font-size: 11px;">${e.status}</td>`:``}
-            <td style="padding: 3px 4px !important; font-size: 11px;"></td>
+            <td style="padding: 3px 4px !important; font-size: 13px;">${a(e.date)}</td>
+            <td style="padding: 3px 4px !important; font-size: 13px;">${e.checkIn||`-`}</td>
+            <td style="padding: 3px 4px !important; font-size: 13px;">${e.checkOut||`-`}</td>
+            ${c?`<td style="${n} padding: 3px 4px !important; font-size: 13px;">${e.status}</td>`:``}
+            <td style="padding: 3px 4px !important; font-size: 13px;"></td>
           </tr>
         `}),`
-        <table class="print-table" style="width: 100%; margin-bottom: 0; font-size: 11px; border-collapse: collapse;">
+        <table class="print-table" style="width: 100%; margin-bottom: 0; font-size: 13px; border-collapse: collapse;">
           <thead>
             <tr>
-              <th style="padding: 3px 4px !important; font-size: 11px; width: ${c?`28%`:`38%`};">วันที่</th>
-              <th style="padding: 3px 4px !important; font-size: 11px; width: ${c?`17%`:`22%`};">สแกนเข้า</th>
-              <th style="padding: 3px 4px !important; font-size: 11px; width: ${c?`17%`:`22%`};">สแกนออก</th>
-              ${c?`<th style="padding: 3px 4px !important; font-size: 11px; width: 18%;">สถานะ</th>`:``}
-              <th style="padding: 3px 4px !important; font-size: 11px; width: 20%;">หมายเหตุ</th>
+              <th style="padding: 3px 4px !important; font-size: 13px; width: ${c?`28%`:`38%`};">วันที่</th>
+              <th style="padding: 3px 4px !important; font-size: 13px; width: ${c?`17%`:`22%`};">สแกนเข้า</th>
+              <th style="padding: 3px 4px !important; font-size: 13px; width: ${c?`17%`:`22%`};">สแกนออก</th>
+              ${c?`<th style="padding: 3px 4px !important; font-size: 13px; width: 18%;">สถานะ</th>`:``}
+              <th style="padding: 3px 4px !important; font-size: 13px; width: 20%;">หมายเหตุ</th>
             </tr>
           </thead>
           <tbody>
