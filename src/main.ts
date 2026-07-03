@@ -765,6 +765,8 @@ interface ProcessedStaffSummary {
   earlyOutCount: number;
   ot3Count: number;
   ot8Count: number;
+  missingInCount: number;
+  missingOutCount: number;
   records: ProcessedDayRecord[];
 }
 
@@ -856,6 +858,8 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
   let earlyOutCount = 0;
   let ot3Count = 0;
   let ot8Count = 0;
+  let missingInCount = 0;
+  let missingOutCount = 0;
 
   const normalInMinutes = timeToMinutes(rules.morningWorkStart);
   const normalOutMinutes = timeToMinutes(rules.afternoonWorkEnd);
@@ -1131,9 +1135,11 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
       status = leaveDay ? `${leaveDay.type}(เช้า)` : 'ลาครึ่งวันเช้า';
     } else if (isMissingCheckOut) {
       status = 'ไม่สแกนออก';
+      missingOutCount++;
       earlyMinutes = 0; // Clear early minutes since it was a missing scan, not early checkout
     } else if (isMissingCheckIn) {
       status = 'ไม่สแกนเข้า';
+      missingInCount++;
       lateMinutes = 0; // Clear late minutes
     } else if (isHalfDayLate) {
       status = 'สายครึ่งวัน';
@@ -1193,6 +1199,8 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
     earlyOutCount,
     ot3Count,
     ot8Count,
+    missingInCount,
+    missingOutCount,
     records: processedRecords
   };
 }
@@ -1300,6 +1308,12 @@ function recalculateAndRender() {
       } else if (col === 'ot8Count') {
         valA = a.ot8Count;
         valB = b.ot8Count;
+      } else if (col === 'missingInCount') {
+        valA = a.missingInCount;
+        valB = b.missingInCount;
+      } else if (col === 'missingOutCount') {
+        valA = a.missingOutCount;
+        valB = b.missingOutCount;
       }
 
       if (typeof valA === 'string' && typeof valB === 'string') {
@@ -1329,7 +1343,7 @@ function recalculateAndRender() {
   if (filtered.length === 0) {
     summaryTableBody.innerHTML = `
       <tr>
-        <td colspan="10" class="text-center text-muted">ไม่พบข้อมูลตามคำค้นหาที่ระบุ</td>
+        <td colspan="12" class="text-center text-muted">ไม่พบข้อมูลตามคำค้นหาที่ระบุ</td>
       </tr>
     `;
     return;
@@ -1381,6 +1395,15 @@ function recalculateAndRender() {
       .filter(r => r.status === 'ออกก่อนเวลา')
       .map(r => getShortDate(r.date));
 
+    // Extract Missing In/Out dates
+    const missingInDates = s.records
+      .filter(r => r.status === 'ไม่สแกนเข้า')
+      .map(r => getShortDate(r.date));
+
+    const missingOutDates = s.records
+      .filter(r => r.status === 'ไม่สแกนออก')
+      .map(r => getShortDate(r.date));
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="text-align: center;"><input type="checkbox" class="select-emp-print" data-id="${s.id}" checked /></td>
@@ -1403,6 +1426,16 @@ function recalculateAndRender() {
       <td>
         <span class="badge ${s.earlyOutCount > 0 ? 'badge-warning' : 'badge-success'}">${s.earlyOutCount} ครั้ง</span>
         ${earlyDates.length > 0 ? `<div style="font-size: 0.75rem; opacity: 0.8; margin-top: 4px; max-width: 140px; word-wrap: break-word; color: #fbbf24;">${earlyDates.join(', ')}</div>` : ''}
+      </td>
+
+      <td>
+        <span class="badge ${s.missingInCount > 0 ? 'badge-danger' : 'badge-success'}">${s.missingInCount} ครั้ง</span>
+        ${missingInDates.length > 0 ? `<div style="font-size: 0.75rem; opacity: 0.8; margin-top: 4px; max-width: 140px; word-wrap: break-word; color: #f87171;">${missingInDates.join(', ')}</div>` : ''}
+      </td>
+      
+      <td>
+        <span class="badge ${s.missingOutCount > 0 ? 'badge-danger' : 'badge-success'}">${s.missingOutCount} ครั้ง</span>
+        ${missingOutDates.length > 0 ? `<div style="font-size: 0.75rem; opacity: 0.8; margin-top: 4px; max-width: 140px; word-wrap: break-word; color: #f87171;">${missingOutDates.join(', ')}</div>` : ''}
       </td>
       
       <td>
@@ -1498,7 +1531,7 @@ function handleCSVExport() {
   }
 
   // Column Headers
-  const csvHeaders = ['รหัสพนักงาน', 'ชื่อพนักงาน', 'ตำแหน่งงาน', 'ฝ่าย/หน่วยงาน', 'มาทำงาน (วัน)', 'สาย (ครั้ง)', 'ลา/ขาดงาน (วัน)', 'ออกก่อนเวลา (ครั้ง)'];
+  const csvHeaders = ['รหัสพนักงาน', 'ชื่อพนักงาน', 'ตำแหน่งงาน', 'ฝ่าย/หน่วยงาน', 'มาทำงาน (วัน)', 'สาย (ครั้ง)', 'ลา/ขาดงาน (วัน)', 'ออกก่อนเวลา (ครั้ง)', 'ไม่สแกนเข้า (ครั้ง)', 'ไม่สแกนออก (ครั้ง)'];
   const csvRows = [csvHeaders.join(',')];
 
   currentProcessedSummaries.forEach(s => {
@@ -1510,7 +1543,9 @@ function handleCSVExport() {
       s.workedDays,
       s.lateCount,
       s.leaveCount,
-      s.earlyOutCount
+      s.earlyOutCount,
+      s.missingInCount,
+      s.missingOutCount
     ];
     csvRows.push(row.join(','));
   });
