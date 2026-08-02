@@ -621,20 +621,21 @@ input:focus {
     font-weight: bold;
   }
   .print-verification-title {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: bold;
-    margin-bottom: 8px;
+    margin-top: 10px;
+    margin-bottom: 5px;
     text-align: left;
   }
   .print-verification-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 25px;
+    margin-bottom: 15px;
   }
   .print-verification-table th, .print-verification-table td {
     border: 1px solid #000 !important;
-    padding: 8px;
-    font-size: 13px;
+    padding: 4px 6px;
+    font-size: 11px;
     color: black !important;
   }
   .print-verification-table th {
