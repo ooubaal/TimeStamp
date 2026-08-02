@@ -1129,48 +1129,70 @@ function calculateStaffRecords(staff: EmployeeData, rules: RuleSettings, holiday
       }
     }
 
+    const statusParts: string[] = [];
+
     if (isHalfDayAfternoonLeave) {
-      status = leaveDay ? `${leaveDay.type}(บ่าย)` : 'ลาครึ่งวันบ่าย';
-    } else if (isHalfDayMorningLeave) {
-      status = leaveDay ? `${leaveDay.type}(เช้า)` : 'ลาครึ่งวันเช้า';
-    } else if (isMissingCheckOut) {
-      status = 'ไม่สแกนออก';
+      statusParts.push(leaveDay ? `${leaveDay.type}(บ่าย)` : 'ลาครึ่งวันบ่าย');
+    }
+    if (isHalfDayMorningLeave) {
+      statusParts.push(leaveDay ? `${leaveDay.type}(เช้า)` : 'ลาครึ่งวันเช้า');
+    }
+    if (isMissingCheckOut) {
+      statusParts.push('ไม่สแกนออก');
       missingOutCount++;
       earlyMinutes = 0; // Clear early minutes since it was a missing scan, not early checkout
-    } else if (isMissingCheckIn) {
-      status = 'ไม่สแกนเข้า';
+    }
+    if (isMissingCheckIn) {
+      statusParts.push('ไม่สแกนเข้า');
       missingInCount++;
       lateMinutes = 0; // Clear late minutes
-    } else if (isHalfDayLate) {
-      status = 'สายครึ่งวัน';
-      if (isHoliday) {
-        holidayLateCount++;
-      } else {
-        lateCount++;
-      }
-    } else if (isLate) {
-      status = 'สาย';
-      if (isHoliday) {
-        holidayLateCount++;
-      } else {
-        lateCount++;
-      }
-    } else if (isEarlyOut) {
-      status = 'ออกก่อนเวลา';
-      earlyOutCount++;
-    } else if (isOT3) {
-      status = 'OT3';
-      ot3Count++;
-    } else if (isOT8) {
-      status = 'OT8';
-      ot8Count++;
-    } else if (checkIn.includes('(แจ้ง)') || checkOut.includes('(แจ้ง)')) {
-      status = 'ลืมรูดบัตร';
-    } else if (leaveDay && leaveDay.type === 'ปฏิบัติงานนอกสถานที่') {
-      status = 'นอกสถานที่';
-    } else if (leaveDay && leaveDay.type === 'ลาชั่วโมง') {
-      status = 'ลาชั่วโมง';
     }
+    
+    if (!isMissingCheckIn) {
+      if (isHalfDayLate) {
+        statusParts.push('สายครึ่งวัน');
+        if (isHoliday) {
+          holidayLateCount++;
+        } else {
+          lateCount++;
+        }
+      } else if (isLate) {
+        statusParts.push('สาย');
+        if (isHoliday) {
+          holidayLateCount++;
+        } else {
+          lateCount++;
+        }
+      }
+    }
+    
+    if (!isMissingCheckOut && isEarlyOut) {
+      statusParts.push('ออกก่อนเวลา');
+      earlyOutCount++;
+    }
+
+    if (isOT3) {
+      statusParts.push('OT3');
+      ot3Count++;
+    }
+    if (isOT8) {
+      statusParts.push('OT8');
+      ot8Count++;
+    }
+
+    if (statusParts.length === 0) {
+      if (checkIn.includes('(แจ้ง)') || checkOut.includes('(แจ้ง)')) {
+        statusParts.push('ลืมรูดบัตร');
+      } else if (leaveDay && leaveDay.type === 'ปฏิบัติงานนอกสถานที่') {
+        statusParts.push('นอกสถานที่');
+      } else if (leaveDay && leaveDay.type === 'ลาชั่วโมง') {
+        statusParts.push('ลาชั่วโมง');
+      } else {
+        statusParts.push('ปกติ');
+      }
+    }
+
+    status = statusParts.join(', ');
 
     processedRecords.push({
       date: dateStr,
@@ -1359,7 +1381,7 @@ function recalculateAndRender() {
     const normalLateDates: string[] = [];
     const holidayLateDates: string[] = [];
     s.records.forEach(r => {
-      if (r.status === 'สาย' || r.status === 'สายครึ่งวัน') {
+      if (r.status.includes('สาย') || r.status.includes('สายครึ่งวัน')) {
         const isWeekend = new Date(r.date).getDay() === 0 || new Date(r.date).getDay() === 6;
         const isHoliday = dbState.holidays.some(h => h.date === r.date) || isWeekend;
         const shortD = getShortDate(r.date);
@@ -1382,26 +1404,26 @@ function recalculateAndRender() {
       
     // Extract Leave dates
     const leaveDates = s.records
-      .filter(r => r.status === 'ลา/ขาดงาน' || r.status === 'ลาครึ่งวันเช้า' || r.status === 'ลาครึ่งวันบ่าย')
+      .filter(r => r.status.includes('ลา/ขาดงาน') || r.status.includes('ลาครึ่งวันเช้า') || r.status.includes('ลาครึ่งวันบ่าย'))
       .map(r => {
         const shortD = getShortDate(r.date);
-        if (r.status === 'ลาครึ่งวันเช้า') return `${shortD}(เช้า)`;
-        if (r.status === 'ลาครึ่งวันบ่าย') return `${shortD}(บ่าย)`;
+        if (r.status.includes('ลาครึ่งวันเช้า')) return `${shortD}(เช้า)`;
+        if (r.status.includes('ลาครึ่งวันบ่าย')) return `${shortD}(บ่าย)`;
         return shortD;
       });
 
     // Extract Early dates
     const earlyDates = s.records
-      .filter(r => r.status === 'ออกก่อนเวลา')
+      .filter(r => r.status.includes('ออกก่อนเวลา'))
       .map(r => getShortDate(r.date));
 
     // Extract Missing In/Out dates
     const missingInDates = s.records
-      .filter(r => r.status === 'ไม่สแกนเข้า')
+      .filter(r => r.status.includes('ไม่สแกนเข้า'))
       .map(r => getShortDate(r.date));
 
     const missingOutDates = s.records
-      .filter(r => r.status === 'ไม่สแกนออก')
+      .filter(r => r.status.includes('ไม่สแกนออก'))
       .map(r => getShortDate(r.date));
 
     const tr = document.createElement('tr');
@@ -1492,11 +1514,9 @@ function showStaffDetail(staff: ProcessedStaffSummary) {
 
     staff.records.forEach(r => {
       let badgeClass = 'badge-success';
-      if (r.status === 'สาย') badgeClass = 'badge-danger';
-      else if (r.status === 'สายครึ่งวัน') badgeClass = 'badge-danger';
-      else if (r.status === 'ไม่สแกนออก' || r.status === 'ไม่สแกนเข้า') badgeClass = 'badge-danger';
-      else if (r.status === 'ออกก่อนเวลา' || r.status === 'ลา/ขาดงาน' || r.status === 'ลาครึ่งวันเช้า' || r.status === 'ลาครึ่งวันบ่าย') badgeClass = 'badge-warning';
-      else if (r.status === 'วันหยุด' || r.status.startsWith('OT')) badgeClass = 'badge-info';
+      if (r.status.includes('สาย') || r.status.includes('ไม่สแกน')) badgeClass = 'badge-danger';
+      else if (r.status.includes('ออกก่อนเวลา') || r.status.includes('ลา') || r.status.includes('ขาดงาน')) badgeClass = 'badge-warning';
+      else if (r.status.includes('วันหยุด') || r.status.includes('OT') || r.status.includes('นอกสถานที่')) badgeClass = 'badge-info';
       else if (r.status === 'ไม่มีข้อมูล') badgeClass = 'badge-secondary';
 
       // Check if weekend or holiday
@@ -1633,7 +1653,7 @@ function handlePrintReports() {
       let rowsHTML = '';
       records.forEach(r => {
         let statusStyle = '';
-        if (r.status === 'สาย' || r.status === 'สายครึ่งวัน' || r.status === 'ไม่สแกนออก' || r.status === 'ไม่สแกนเข้า' || r.status === 'ลา/ขาดงาน') {
+        if (r.status.includes('สาย') || r.status.includes('ไม่สแกน') || r.status.includes('ลา/ขาดงาน') || r.status.includes('ออกก่อนเวลา')) {
           statusStyle = 'font-weight: bold; color: black;';
         }
         rowsHTML += `
@@ -1680,7 +1700,7 @@ function handlePrintReports() {
     const normalLateDatesPrint: string[] = [];
     const holidayLateDatesPrint: string[] = [];
     s.records.forEach(r => {
-      if (r.status === 'สาย' || r.status === 'สายครึ่งวัน') {
+      if (r.status.includes('สาย')) {
         const isWeekend = new Date(r.date).getDay() === 0 || new Date(r.date).getDay() === 6;
         const isHoliday = dbState.holidays.some(h => h.date === r.date) || isWeekend;
         const shortD = getShortDate(r.date);
