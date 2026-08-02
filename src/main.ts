@@ -94,6 +94,10 @@ const filterDepartmentSelect = document.getElementById('filter-department') as H
 const printContainer = document.getElementById('print-container') as HTMLElement;
 const printShowStatusCheckbox = document.getElementById('print-show-status') as HTMLInputElement;
 const printShowVerificationCheckbox = document.getElementById('print-show-verification') as HTMLInputElement;
+const printFontSizeInput = document.getElementById('print-font-size') as HTMLInputElement;
+const printFontSizeVal = document.getElementById('print-font-size-val') as HTMLElement;
+const printScaleInput = document.getElementById('print-scale') as HTMLInputElement;
+const printScaleVal = document.getElementById('print-scale-val') as HTMLElement;
 const selectAllPrint = document.getElementById('select-all-print') as HTMLInputElement;
 const leaveSheetUrlInput = document.getElementById('leave-sheet-url') as HTMLInputElement;
 const btnSyncLeave = document.getElementById('btn-sync-leave') as HTMLButtonElement;
@@ -460,6 +464,18 @@ function init() {
   // Print Reports
   if (btnPrintReports) {
     btnPrintReports.addEventListener('click', handlePrintReports);
+  }
+
+  if (printFontSizeInput && printFontSizeVal) {
+    printFontSizeInput.addEventListener('input', () => {
+      printFontSizeVal.textContent = `${printFontSizeInput.value}px`;
+    });
+  }
+
+  if (printScaleInput && printScaleVal) {
+    printScaleInput.addEventListener('input', () => {
+      printScaleVal.textContent = `${printScaleInput.value}%`;
+    });
   }
 
   // Restore employee data from local storage if exists
@@ -1619,6 +1635,8 @@ function handlePrintReports() {
   }
 
   printContainer.innerHTML = '';
+  printContainer.style.setProperty('--print-base-font-size', `${printFontSizeInput.value}px`);
+  printContainer.style.setProperty('--print-scale', `${printScaleInput.value}%`);
 
   const getShortDate = (dateStr: string) => {
     const p = dateStr.split('-');
@@ -1658,24 +1676,24 @@ function handlePrintReports() {
         }
         rowsHTML += `
           <tr>
-            <td style="padding: 3px 2px !important; font-size: 11.5px; white-space: nowrap;">${formatDateWithThaiDayPrint(r.date)}</td>
-            <td style="padding: 3px 4px !important; font-size: 13px;">${r.checkIn || '-'}</td>
-            <td style="padding: 3px 4px !important; font-size: 13px;">${r.checkOut || '-'}</td>
-            ${showStatusCol ? `<td style="${statusStyle} padding: 3px 4px !important; font-size: 13px;">${r.status}</td>` : ''}
-            <td style="padding: 3px 4px !important; font-size: 13px;"></td>
+            <td style="padding: 3px 2px !important; font-size: calc(var(--print-base-font-size, 13px) - 1.5px); white-space: nowrap;">${formatDateWithThaiDayPrint(r.date)}</td>
+            <td style="padding: 3px 4px !important; font-size: var(--print-base-font-size, 13px);">${r.checkIn || '-'}</td>
+            <td style="padding: 3px 4px !important; font-size: var(--print-base-font-size, 13px);">${r.checkOut || '-'}</td>
+            ${showStatusCol ? `<td style="${statusStyle} padding: 3px 4px !important; font-size: var(--print-base-font-size, 13px);">${r.status}</td>` : ''}
+            <td style="padding: 3px 4px !important; font-size: var(--print-base-font-size, 13px);"></td>
           </tr>
         `;
       });
 
       return `
-        <table class="print-table" style="width: 100%; margin-bottom: 0; font-size: 13px; border-collapse: collapse;">
+        <table class="print-table" style="width: 100%; margin-bottom: 0; font-size: var(--print-base-font-size, 13px); border-collapse: collapse;">
           <thead>
             <tr>
-              <th style="padding: 3px 2px !important; font-size: 13px; width: ${showStatusCol ? '31%' : '40%'};">วันที่</th>
-              <th style="padding: 3px 4px !important; font-size: 13px; width: ${showStatusCol ? '16%' : '20%'};">สแกนเข้า</th>
-              <th style="padding: 3px 4px !important; font-size: 13px; width: ${showStatusCol ? '16%' : '20%'};">สแกนออก</th>
-              ${showStatusCol ? `<th style="padding: 3px 4px !important; font-size: 13px; width: 18%;">สถานะ</th>` : ''}
-              <th style="padding: 3px 4px !important; font-size: 13px; width: ${showStatusCol ? '19%' : '20%'};">หมายเหตุ</th>
+              <th style="padding: 3px 2px !important; font-size: var(--print-base-font-size, 13px); width: ${showStatusCol ? '31%' : '40%'};">วันที่</th>
+              <th style="padding: 3px 4px !important; font-size: var(--print-base-font-size, 13px); width: ${showStatusCol ? '16%' : '20%'};">สแกนเข้า</th>
+              <th style="padding: 3px 4px !important; font-size: var(--print-base-font-size, 13px); width: ${showStatusCol ? '16%' : '20%'};">สแกนออก</th>
+              ${showStatusCol ? `<th style="padding: 3px 4px !important; font-size: var(--print-base-font-size, 13px); width: 18%;">สถานะ</th>` : ''}
+              <th style="padding: 3px 4px !important; font-size: var(--print-base-font-size, 13px); width: ${showStatusCol ? '19%' : '20%'};">หมายเหตุ</th>
             </tr>
           </thead>
           <tbody>
@@ -1742,12 +1760,12 @@ function handlePrintReports() {
           </tr>
           <tr>
             <td style="font-weight: bold;">สาย (วันธรรมดา)</td>
-            <td style="font-size: 11px;">${normalLateDatesPrint.join(', ')}</td>
+            <td style="font-size: calc(var(--print-base-font-size, 13px) - 2px);">${normalLateDatesPrint.join(', ')}</td>
             <td style="text-align: center; font-weight: bold;">${s.lateCount > 0 ? s.lateCount + ' ครั้ง' : '-'}</td>
           </tr>
           <tr>
             <td style="font-weight: bold;">สาย (วันหยุด)</td>
-            <td style="font-size: 11px;">${holidayLateDatesPrint.join(', ')}</td>
+            <td style="font-size: calc(var(--print-base-font-size, 13px) - 2px);">${holidayLateDatesPrint.join(', ')}</td>
             <td style="text-align: center; font-weight: bold;">${s.holidayLateCount > 0 ? s.holidayLateCount + ' ครั้ง' : '-'}</td>
           </tr>
           <tr>
@@ -1761,18 +1779,18 @@ function handlePrintReports() {
 
     page.innerHTML = `
       <div class="print-header" style="margin-bottom: 10px; padding-bottom: 5px;">
-        <h1 style="font-size: 16px; margin: 0 0 3px 0;">ใบตรวจสอบเวลาปฏิบัติงานและวันลาเจ้าหน้าที่</h1>
-        <div style="font-size: 12px; font-weight: bold;">ประจำเดือน ${periodText}</div>
+        <h1 style="font-size: calc(var(--print-base-font-size, 13px) + 3px); margin: 0 0 3px 0;">ใบตรวจสอบเวลาปฏิบัติงานและวันลาเจ้าหน้าที่</h1>
+        <div style="font-size: calc(var(--print-base-font-size, 13px) - 1px); font-weight: bold;">ประจำเดือน ${periodText}</div>
       </div>
       
-      <div class="print-info-grid" style="margin-bottom: 10px; font-size: 12px; grid-template-columns: repeat(4, 1fr);">
+      <div class="print-info-grid" style="margin-bottom: 10px; font-size: calc(var(--print-base-font-size, 13px) - 1px); grid-template-columns: repeat(4, 1fr);">
         <div><strong>ชื่อ-นามสกุล:</strong> ${s.name}</div>
         <div><strong>รหัสประจำตัว:</strong> ${s.id}</div>
         <div><strong>ตำแหน่ง:</strong> ${s.position}</div>
         <div><strong>ฝ่าย/หน่วยงาน:</strong> ${s.department}</div>
       </div>
 
-      <h3 style="font-size: 12px; font-weight: bold; margin-top: 0; margin-bottom: 5px; text-align: left;">ประวัติเวลาปฏิบัติงานจริงประจำเดือน</h3>
+      <h3 style="font-size: calc(var(--print-base-font-size, 13px) - 1px); font-weight: bold; margin-top: 0; margin-bottom: 5px; text-align: left;">ประวัติเวลาปฏิบัติงานจริงประจำเดือน</h3>
       ${sideBySideTablesHTML}
 
       ${verificationTableHTML}

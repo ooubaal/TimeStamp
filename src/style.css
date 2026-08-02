@@ -577,7 +577,8 @@ input:focus {
     color: black !important;
     background: white !important;
     font-family: 'Sarabun', 'Inter', sans-serif !important;
-    font-size: 13px;
+    font-size: var(--print-base-font-size, 13px) !important;
+    zoom: var(--print-scale, 100%) !important;
     line-height: 1.4;
   }
   .print-page:last-child {
@@ -621,7 +622,7 @@ input:focus {
     font-weight: bold;
   }
   .print-verification-title {
-    font-size: 12px;
+    font-size: calc(var(--print-base-font-size, 13px) - 1px);
     font-weight: bold;
     margin-top: 10px;
     margin-bottom: 5px;
@@ -635,7 +636,7 @@ input:focus {
   .print-verification-table th, .print-verification-table td {
     border: 1px solid #000 !important;
     padding: 4px 6px;
-    font-size: 11px;
+    font-size: calc(var(--print-base-font-size, 13px) - 2px);
     color: black !important;
   }
   .print-verification-table th {
