@@ -1529,11 +1529,21 @@ function showStaffDetail(staff: ProcessedStaffSummary) {
     };
 
     staff.records.forEach(r => {
-      let badgeClass = 'badge-success';
-      if (r.status.includes('สาย') || r.status.includes('ไม่สแกน')) badgeClass = 'badge-danger';
-      else if (r.status.includes('ออกก่อนเวลา') || r.status.includes('ลา') || r.status.includes('ขาดงาน')) badgeClass = 'badge-warning';
-      else if (r.status.includes('วันหยุด') || r.status.includes('OT') || r.status.includes('นอกสถานที่')) badgeClass = 'badge-info';
-      else if (r.status === 'ไม่มีข้อมูล') badgeClass = 'badge-secondary';
+      // Split the status by comma and render individual badges
+      const statusParts = r.status.split(',').map(s => s.trim()).filter(Boolean);
+      const badgesHTML = statusParts.map(part => {
+        let badgeClass = 'badge-success';
+        if (part.includes('สาย') || part.includes('ไม่สแกน')) {
+          badgeClass = 'badge-danger';
+        } else if (part.includes('ออกก่อนเวลา') || part.includes('ลา') || part.includes('ขาดงาน') || part.includes('ลืมรูดบัตร') || part.includes('ลาครึ่งวัน')) {
+          badgeClass = 'badge-warning';
+        } else if (part.includes('วันหยุด') || part.includes('OT') || part.includes('นอกสถานที่')) {
+          badgeClass = 'badge-info';
+        } else if (part === 'ไม่มีข้อมูล') {
+          badgeClass = 'badge-secondary';
+        }
+        return `<span class="badge ${badgeClass}">${part}</span>`;
+      }).join(' ');
 
       // Check if weekend or holiday
       const dateObj = new Date(r.date);
@@ -1549,7 +1559,7 @@ function showStaffDetail(staff: ProcessedStaffSummary) {
         <td>${formatDateWithThaiDay(r.date)}</td>
         <td>${r.checkIn}</td>
         <td>${r.checkOut}</td>
-        <td><span class="badge ${badgeClass}">${r.status}</span></td>
+        <td><div style="display: inline-flex; gap: 4px; flex-wrap: wrap;">${badgesHTML}</div></td>
         <td>${r.lateMinutes > 0 ? r.lateMinutes + ' นาที' : '-'}</td>
         <td>${r.earlyMinutes > 0 ? r.earlyMinutes + ' นาที' : '-'}</td>
       `;
